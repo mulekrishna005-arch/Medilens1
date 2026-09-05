@@ -1,4 +1,4 @@
-import { PatientIntake, LabParameter, ConflictAlert } from '@/types';
+import type { PatientIntake, LabParameter, ConflictAlert } from '@/types';
 
 /**
  * Cross-analyzes patient intake disclosures, current laboratory reports,
@@ -17,7 +17,6 @@ export function detectConflicts(
 
   const allergiesStr = (patient.allergies || []).join(' ').toLowerCase();
   const rawPrevLower = rawPreviousText.toLowerCase();
-  const symptomsStr = (patient.symptoms || []).join(' ').toLowerCase();
   const conditionsStr = (patient.existingConditions || []).join(' ').toLowerCase();
 
   // 1. ALLERGY DISCREPANCY: Patient reports "No Allergies" or empty, but previous records or notes document allergies
@@ -153,6 +152,26 @@ export function detectConflicts(
       },
       status: 'PENDING'
     });
+  }
+
+  // 6. ACUTE TRAJECTORY DISCREPANCY: Significant acute shift in critical hematology parameters
+  if (previousParams && previousParams.length > 0) {
+    for (const prev of previousParams) {
+      const curr = currentParams.find(p => p.canonicalName.toLowerCase() === prev.canonicalName.toLowerCase());
+      if (curr && typeof curr.observedValue === 'number' && typeof prev.observedValue === 'number' && prev.observedValue > 0) {
+        if (prev.canonicalName === 'Platelet Count' && (prev.observedValue - curr.observedValue) / prev.observedValue >= 0.6) {
+          conflicts.push({
+            id: 'conflict-acute-platelet-drop',
+            title: 'Acute Platelet Count Decline',
+            severity: 'HIGH',
+            description: `Platelet count dropped significantly from ${prev.observedValue} ${prev.unit} to ${curr.observedValue} ${curr.unit}. Sudden downward trajectory warrants clinical review for acute thrombocytopenia.`,
+            sourceA: { source: 'Previous Report', detail: `${prev.canonicalName}: ${prev.observedValue} ${prev.unit}` },
+            sourceB: { source: 'Current Report', detail: `${curr.canonicalName}: ${curr.observedValue} ${curr.unit}` },
+            status: 'PENDING'
+          });
+        }
+      }
+    }
   }
 
   return conflicts;

@@ -79,12 +79,23 @@ export function ConflictAlertBanner({
               }}
             >
               <div 
+                role="button"
+                tabIndex={0}
+                aria-expanded={isExpanded}
+                aria-controls={`conflict-body-${conflict.id}`}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
                 onClick={() => setExpandedId(isExpanded ? null : conflict.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setExpandedId(isExpanded ? null : conflict.id);
+                  }
+                }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <AlertTriangle 
                     size={16} 
+                    aria-hidden="true"
                     style={{ color: conflict.severity === 'HIGH' ? '#ef4444' : '#f59e0b' }} 
                   />
                   <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-heading)' }}>
@@ -102,12 +113,15 @@ export function ConflictAlertBanner({
                     {conflict.status}
                   </span>
                 </div>
-                {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                {isExpanded ? <ChevronUp size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}
               </div>
 
               {/* Collapsible Detail */}
               {isExpanded && (
-                <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.6rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.75rem' }}>
+                <div 
+                  id={`conflict-body-${conflict.id}`}
+                  style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.6rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.75rem' }}
+                >
                   <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.45' }}>
                     {conflict.description}
                   </p>
@@ -119,7 +133,7 @@ export function ConflictAlertBanner({
                         Source A: {conflict.sourceA.source}
                       </div>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-primary)' }}>
-                        "{conflict.sourceA.detail}"
+                        &ldquo;{conflict.sourceA.detail}&rdquo;
                       </div>
                     </div>
 
@@ -128,7 +142,7 @@ export function ConflictAlertBanner({
                         Source B: {conflict.sourceB.source}
                       </div>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-primary)' }}>
-                        "{conflict.sourceB.detail}"
+                        &ldquo;{conflict.sourceB.detail}&rdquo;
                       </div>
                     </div>
                   </div>
@@ -147,6 +161,7 @@ export function ConflictAlertBanner({
                         type="text"
                         className="form-input"
                         placeholder="Add clinician clarification note (e.g., patient confirmed past allergy)..."
+                        aria-label={`Clinician clarification note for ${conflict.title}`}
                         style={{ flex: 1, minWidth: '220px', fontSize: '0.78rem', padding: '0.4rem 0.6rem' }}
                         value={resolutionInput[conflict.id] || ''}
                         onChange={(e) => setResolutionInput({ ...resolutionInput, [conflict.id]: e.target.value })}
@@ -160,7 +175,7 @@ export function ConflictAlertBanner({
                           onResolveConflict(conflict.id, note);
                         }}
                       >
-                        <CheckCircle size={14} /> Resolve Conflict
+                        <CheckCircle size={14} aria-hidden="true" /> Resolve Conflict
                       </button>
                       <button 
                         type="button" 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Header } from '@/components/Header';
 import { IntakeForm } from '@/components/IntakeForm';
 import { ReportUploader } from '@/components/ReportUploader';
@@ -17,9 +17,6 @@ import { DEMO_SCENARIOS } from '@/lib/demoScenarios';
 import { runMedLensPipeline } from '@/lib/pipeline';
 import { 
   FileSpreadsheet, 
-  ArrowRight, 
-  CheckCircle, 
-  ShieldCheck, 
   Sparkles, 
   Layers, 
   Workflow, 
@@ -31,63 +28,69 @@ export default function MedLensPage() {
   const defaultScenario = DEMO_SCENARIOS[0];
 
   const [activeScenarioId, setActiveScenarioId] = useState<string>(defaultScenario.id);
-  const [intake, setIntake] = useState<PatientIntake>({
+  const [intake, setIntake] = useState<PatientIntake>(() => ({
     ...defaultScenario.intake,
-    id: `pt-${Date.now()}`,
-    createdAt: new Date().toISOString()
-  });
+    id: `pt-${defaultScenario.id}`,
+    createdAt: '2026-09-05T10:00:00.000Z'
+  }));
 
   const [currentReportText, setCurrentReportText] = useState(defaultScenario.currentReportText);
   const [currentReportDate, setCurrentReportDate] = useState(defaultScenario.currentReportDate);
   const [previousReportText, setPreviousReportText] = useState(defaultScenario.previousReportText || '');
   const [previousReportDate, setPreviousReportDate] = useState(defaultScenario.previousReportDate || '');
 
-  const [record, setRecord] = useState<MedicalRecordData | null>(null);
+  // Pre-seed record on initial render via pure lazy initializer
+  const [record, setRecord] = useState<MedicalRecordData>(() => {
+    const initialPatient: PatientIntake = {
+      ...defaultScenario.intake,
+      id: `pt-${defaultScenario.id}`,
+      createdAt: '2026-09-05T10:00:00.000Z'
+    };
+    return runMedLensPipeline({
+      patient: initialPatient,
+      currentReportText: defaultScenario.currentReportText,
+      currentReportDate: defaultScenario.currentReportDate,
+      previousReportText: defaultScenario.previousReportText || '',
+      previousReportDate: defaultScenario.previousReportDate || ''
+    });
+  });
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [editingParameter, setEditingParameter] = useState<LabParameter | null>(null);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'record' | 'summary' | 'longitudinal' | 'clarifications'>('record');
+  const [liveAnnouncement, setLiveAnnouncement] = useState<string>('MedLens Clinical Intelligence ready.');
 
-  // Load and execute initial pipeline on mount for immediate wow factor
-  useEffect(() => {
-    const initialPatient: PatientIntake = {
-      ...defaultScenario.intake,
-      id: `pt-${Date.now()}`,
-      createdAt: new Date().toISOString()
-    };
-    executePipeline(initialPatient, defaultScenario.currentReportText, defaultScenario.currentReportDate, defaultScenario.previousReportText, defaultScenario.previousReportDate);
-  }, []);
+  const availableTabs = useMemo(() => {
+    const tabs: ('record' | 'summary' | 'longitudinal' | 'clarifications')[] = ['record', 'summary'];
+    if (record?.longitudinalComparisons && record.longitudinalComparisons.length > 0) tabs.push('longitudinal');
+    if (record?.clarificationQuestions && record.clarificationQuestions.length > 0) tabs.push('clarifications');
+    return tabs;
+  }, [record]);
 
-  // 2. Scenario Switching
-  const handleSelectScenario = (scenario: DemoScenario) => {
-    setActiveScenarioId(scenario.id);
-    const newIntake: PatientIntake = {
-      ...scenario.intake,
-      id: `pt-${Date.now()}`,
-      createdAt: new Date().toISOString()
-    };
-    setIntake(newIntake);
-    setCurrentReportText(scenario.currentReportText);
-    setCurrentReportDate(scenario.currentReportDate);
-    setPreviousReportText(scenario.previousReportText || '');
-    setPreviousReportDate(scenario.previousReportDate || '');
-
-    executePipeline(
-      newIntake, 
-      scenario.currentReportText, 
-      scenario.currentReportDate, 
-      scenario.previousReportText || '', 
-      scenario.previousReportDate || ''
-    );
+  const handleTabKeyDown = (e: React.KeyboardEvent, currentTab: typeof activeTab) => {
+    const idx = availableTabs.indexOf(currentTab);
+    if (idx === -1) return;
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      const nextTab = availableTabs[(idx + 1) % availableTabs.length];
+      setActiveTab(nextTab);
+      document.getElementById(`tab-${nextTab}`)?.focus();
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      const prevTab = availableTabs[(idx - 1 + availableTabs.length) % availableTabs.length];
+      setActiveTab(prevTab);
+      document.getElementById(`tab-${prevTab}`)?.focus();
+    }
   };
 
-  // 3. Pipeline Execution
-  const executePipeline = (
-    currentIntake: PatientIntake = intake,
-    cReport: string = currentReportText,
-    cDate: string = currentReportDate,
-    pReport: string = previousReportText,
-    pDate: string = previousReportDate
+  // Pipeline Execution engine
+  const executePipeline = useCallback((
+    currentIntake: PatientIntake,
+    cReport: string,
+    cDate: string,
+    pReport: string = '',
+    pDate: string = ''
   ) => {
     setIsProcessing(true);
     try {
@@ -99,11 +102,48 @@ export default function MedLensPage() {
         previousReportDate: pDate
       });
       setRecord(processedRecord);
+      setLiveAnnouncement(`Analysis complete. Extracted ${processedRecord.currentParameters.length} parameters with ${processedRecord.conflicts.length} conflict alerts.`);
     } catch (err) {
       console.error('Failed to run MedLens pipeline:', err);
+      setLiveAnnouncement('Error running clinical analysis pipeline.');
     } finally {
       setIsProcessing(false);
     }
+  }, []);
+
+  // Zero-argument helper to re-run pipeline with current state values
+  const handleReanalyze = useCallback(() => {
+    executePipeline(
+      intake,
+      currentReportText,
+      currentReportDate,
+      previousReportText,
+      previousReportDate
+    );
+  }, [executePipeline, intake, currentReportText, currentReportDate, previousReportText, previousReportDate]);
+
+  // 2. Scenario Switching
+  const handleSelectScenario = (scenario: DemoScenario) => {
+    setActiveScenarioId(scenario.id);
+    const newIntake: PatientIntake = {
+      ...scenario.intake,
+      id: `pt-${scenario.id}`,
+      createdAt: new Date().toISOString()
+    };
+    setIntake(newIntake);
+    setCurrentReportText(scenario.currentReportText);
+    setCurrentReportDate(scenario.currentReportDate);
+    setPreviousReportText(scenario.previousReportText || '');
+    setPreviousReportDate(scenario.previousReportDate || '');
+    setLiveAnnouncement(`Loaded scenario: ${scenario.title}`);
+
+    executePipeline(
+      newIntake, 
+      scenario.currentReportText, 
+      scenario.currentReportDate, 
+      scenario.previousReportText || '', 
+      scenario.previousReportDate || ''
+    );
   };
 
   // 4. Human Review & Field Edit
@@ -131,6 +171,7 @@ export default function MedLensPage() {
       currentParameters: updatedParams,
       auditTrail: [auditEntry, ...record.auditTrail]
     });
+    setLiveAnnouncement(`Updated parameter: ${updatedParam.canonicalName}`);
   };
 
   // 5. Conflict Resolution
@@ -152,6 +193,7 @@ export default function MedLensPage() {
       conflicts: updatedConflicts,
       auditTrail: [auditEntry, ...record.auditTrail]
     });
+    setLiveAnnouncement('Clinical conflict acknowledged.');
   };
 
   const handleResolveConflict = (conflictId: string, note: string) => {
@@ -172,6 +214,7 @@ export default function MedLensPage() {
       conflicts: updatedConflicts,
       auditTrail: [auditEntry, ...record.auditTrail]
     });
+    setLiveAnnouncement('Clinical conflict marked as resolved.');
   };
 
   // 6. Clarification Question Answering
@@ -194,6 +237,7 @@ export default function MedLensPage() {
       clarificationQuestions: updatedQuestions,
       auditTrail: [auditEntry, ...record.auditTrail]
     });
+    setLiveAnnouncement('Clarification answer recorded.');
   };
 
   // 7. Full Record Sign-Off & Verification
@@ -216,10 +260,21 @@ export default function MedLensPage() {
       currentParameters: verifiedParams,
       auditTrail: [auditEntry, ...record.auditTrail]
     });
+    setLiveAnnouncement('Medical record officially verified and signed off.');
   };
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', paddingBottom: '4rem' }}>
+      {/* Accessible Skip to Content Link */}
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
+
+      {/* Screen Reader Live Region for Pipeline Status and Interactive Actions */}
+      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+        {isProcessing ? 'Processing clinical intelligence pipeline...' : liveAnnouncement}
+      </div>
+
       {/* Top Application Header */}
       <Header 
         onSelectScenario={handleSelectScenario}
@@ -228,7 +283,10 @@ export default function MedLensPage() {
       />
 
       {/* Hero / Pipeline Status Bar */}
-      <div style={{ background: 'linear-gradient(180deg, rgba(6, 182, 212, 0.08) 0%, transparent 100%)', borderBottom: '1px solid var(--border-subtle)', padding: '1.25rem 0' }}>
+      <section 
+        aria-label="Clinical Intelligence Pipeline Summary"
+        style={{ background: 'linear-gradient(180deg, rgba(6, 182, 212, 0.08) 0%, transparent 100%)', borderBottom: '1px solid var(--border-subtle)', padding: '1.25rem 0' }}
+      >
         <div className="med-container">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
@@ -251,9 +309,10 @@ export default function MedLensPage() {
                 type="button" 
                 className="btn btn-secondary"
                 style={{ fontSize: '0.8rem', padding: '0.5rem 0.9rem' }}
-                onClick={() => executePipeline()}
+                onClick={handleReanalyze}
                 disabled={isProcessing}
                 title="Re-run pipeline analysis"
+                aria-label="Re-analyze current clinical documents"
               >
                 <RotateCcw size={14} /> Re-analyze
               </button>
@@ -263,19 +322,20 @@ export default function MedLensPage() {
                 style={{ fontSize: '0.8rem', padding: '0.5rem 1rem' }}
                 onClick={() => setIsExportOpen(true)}
                 disabled={!record}
+                aria-label="Export clinical health summary"
               >
                 <FileSpreadsheet size={15} /> Export Health Summary
               </button>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Main Grid Content */}
-      <main className="med-container" style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {/* Main Grid Content Landmark */}
+      <main id="main-content" tabIndex={-1} className="med-container" style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', outline: 'none' }}>
         
         {/* Row 1: Intake & Report Ingestion (Side-by-Side) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '1.5rem' }}>
+        <section aria-label="Patient Intake and Medical Report Inputs" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '1.5rem' }}>
           {/* 1. Patient Intake Form */}
           <IntakeForm intake={intake} onChange={setIntake} />
 
@@ -289,91 +349,129 @@ export default function MedLensPage() {
             onPreviousReportChange={setPreviousReportText}
             previousReportDate={previousReportDate}
             onPreviousReportDateChange={setPreviousReportDate}
-            onRunPipeline={() => executePipeline()}
+            onRunPipeline={handleReanalyze}
             isProcessing={isProcessing}
           />
-        </div>
+        </section>
 
         {/* Row 2: Conflict Alerts Banner (if any detected) */}
         {record && record.conflicts && record.conflicts.length > 0 && (
-          <ConflictAlertBanner 
-            conflicts={record.conflicts}
-            onAcknowledgeConflict={handleAcknowledgeConflict}
-            onResolveConflict={handleResolveConflict}
-          />
+          <section aria-label="Clinical Conflict Alerts">
+            <ConflictAlertBanner 
+              conflicts={record.conflicts}
+              onAcknowledgeConflict={handleAcknowledgeConflict}
+              onResolveConflict={handleResolveConflict}
+            />
+          </section>
         )}
 
         {/* Row 3: Result Tabs & Navigation */}
         {record && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.5rem', flexWrap: 'wrap' }}>
+          <section aria-label="Structured Clinical Findings" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div 
+              role="tablist" 
+              aria-label="Clinical Findings Views"
+              style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.5rem', flexWrap: 'wrap' }}
+            >
               <button 
+                id="tab-record"
+                role="tab"
+                aria-selected={activeTab === 'record'}
+                aria-controls="panel-record"
+                tabIndex={activeTab === 'record' ? 0 : -1}
                 type="button"
                 className={`btn ${activeTab === 'record' ? 'btn-primary' : 'btn-outline'}`}
                 style={{ fontSize: '0.85rem', padding: '0.5rem 1.1rem' }}
                 onClick={() => setActiveTab('record')}
+                onKeyDown={(e) => handleTabKeyDown(e, 'record')}
               >
-                <Layers size={15} /> Structured Record ({record.currentParameters.length})
+                <Layers size={15} aria-hidden="true" /> Structured Record ({record.currentParameters.length})
               </button>
               <button 
+                id="tab-summary"
+                role="tab"
+                aria-selected={activeTab === 'summary'}
+                aria-controls="panel-summary"
+                tabIndex={activeTab === 'summary' ? 0 : -1}
                 type="button"
                 className={`btn ${activeTab === 'summary' ? 'btn-primary' : 'btn-outline'}`}
                 style={{ fontSize: '0.85rem', padding: '0.5rem 1.1rem' }}
                 onClick={() => setActiveTab('summary')}
+                onKeyDown={(e) => handleTabKeyDown(e, 'summary')}
               >
-                <Sparkles size={15} /> AI Patient Summary
+                <Sparkles size={15} aria-hidden="true" /> AI Patient Summary
               </button>
               {record.longitudinalComparisons && record.longitudinalComparisons.length > 0 && (
                 <button 
+                  id="tab-longitudinal"
+                  role="tab"
+                  aria-selected={activeTab === 'longitudinal'}
+                  aria-controls="panel-longitudinal"
+                  tabIndex={activeTab === 'longitudinal' ? 0 : -1}
                   type="button"
                   className={`btn ${activeTab === 'longitudinal' ? 'btn-primary' : 'btn-outline'}`}
                   style={{ fontSize: '0.85rem', padding: '0.5rem 1.1rem' }}
                   onClick={() => setActiveTab('longitudinal')}
+                  onKeyDown={(e) => handleTabKeyDown(e, 'longitudinal')}
                 >
-                  <Workflow size={15} /> Longitudinal Comparison ({record.longitudinalComparisons.length})
+                  <Workflow size={15} aria-hidden="true" /> Longitudinal Comparison ({record.longitudinalComparisons.length})
                 </button>
               )}
               {record.clarificationQuestions && record.clarificationQuestions.length > 0 && (
                 <button 
+                  id="tab-clarifications"
+                  role="tab"
+                  aria-selected={activeTab === 'clarifications'}
+                  aria-controls="panel-clarifications"
+                  tabIndex={activeTab === 'clarifications' ? 0 : -1}
                   type="button"
                   className={`btn ${activeTab === 'clarifications' ? 'btn-primary' : 'btn-outline'}`}
                   style={{ fontSize: '0.85rem', padding: '0.5rem 1.1rem' }}
                   onClick={() => setActiveTab('clarifications')}
+                  onKeyDown={(e) => handleTabKeyDown(e, 'clarifications')}
                 >
                   Clarification Inquiries ({record.clarificationQuestions.length})
                 </button>
               )}
             </div>
 
-            {/* Active Tab View */}
+            {/* Active Tab View Panels */}
             {activeTab === 'record' && (
-              <StructuredRecordView 
-                record={record}
-                onEditParameter={(p) => setEditingParameter(p)}
-                onVerifyEntireRecord={handleVerifyEntireRecord}
-                onOpenExportModal={() => setIsExportOpen(true)}
-              />
+              <div id="panel-record" role="tabpanel" aria-labelledby="tab-record">
+                <StructuredRecordView 
+                  record={record}
+                  onEditParameter={(p) => setEditingParameter(p)}
+                  onVerifyEntireRecord={handleVerifyEntireRecord}
+                  onOpenExportModal={() => setIsExportOpen(true)}
+                />
+              </div>
             )}
 
             {activeTab === 'summary' && (
-              <PatientSummaryCard summary={record.summary} />
+              <div id="panel-summary" role="tabpanel" aria-labelledby="tab-summary">
+                <PatientSummaryCard summary={record.summary} />
+              </div>
             )}
 
             {activeTab === 'longitudinal' && record.longitudinalComparisons && (
-              <LongitudinalComparisonView 
-                comparisons={record.longitudinalComparisons}
-                currentDate={record.currentReportDate}
-                previousDate={record.previousReportDate}
-              />
+              <div id="panel-longitudinal" role="tabpanel" aria-labelledby="tab-longitudinal">
+                <LongitudinalComparisonView 
+                  comparisons={record.longitudinalComparisons}
+                  currentDate={record.currentReportDate}
+                  previousDate={record.previousReportDate}
+                />
+              </div>
             )}
 
             {activeTab === 'clarifications' && (
-              <ClarificationQuestionsCard 
-                questions={record.clarificationQuestions}
-                onAnswerQuestion={handleAnswerQuestion}
-              />
+              <div id="panel-clarifications" role="tabpanel" aria-labelledby="tab-clarifications">
+                <ClarificationQuestionsCard 
+                  questions={record.clarificationQuestions}
+                  onAnswerQuestion={handleAnswerQuestion}
+                />
+              </div>
             )}
-          </div>
+          </section>
         )}
       </main>
 

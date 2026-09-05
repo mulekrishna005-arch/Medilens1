@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
-import { Edit3, CheckCircle, X, ShieldCheck, AlertCircle } from 'lucide-react';
-import { LabParameter, RangeStatus } from '@/types';
+import React, { useState, useEffect } from 'react';
+import { Edit3, CheckCircle, X, ShieldCheck } from 'lucide-react';
+import { LabParameter } from '@/types';
 import { parseReferenceRange, evaluateReferenceRange } from '@/lib/referenceRangeEvaluator';
 
 interface HumanReviewModalProps {
@@ -12,20 +12,34 @@ interface HumanReviewModalProps {
   onSave: (updatedParam: LabParameter, comment: string) => void;
 }
 
-export function HumanReviewModal({
+interface HumanReviewContentProps {
+  parameter: LabParameter;
+  onClose: () => void;
+  onSave: (updatedParam: LabParameter, comment: string) => void;
+}
+
+function HumanReviewModalContent({
   parameter,
-  isOpen,
   onClose,
   onSave
-}: HumanReviewModalProps) {
-  if (!isOpen || !parameter) return null;
+}: HumanReviewContentProps) {
+  const [name, setName] = useState(parameter.canonicalName);
+  const [value, setValue] = useState(String(parameter.observedValue));
+  const [unit, setUnit] = useState(parameter.unit);
+  const [rawRange, setRawRange] = useState(parameter.referenceRange.rawText);
+  const [comment, setComment] = useState('Clinician manual review & parameter verification');
+  const [markVerified, setMarkVerified] = useState(true);
 
-  const [name, setName] = React.useState(parameter.canonicalName);
-  const [value, setValue] = React.useState(String(parameter.observedValue));
-  const [unit, setUnit] = React.useState(parameter.unit);
-  const [rawRange, setRawRange] = React.useState(parameter.referenceRange.rawText);
-  const [comment, setComment] = React.useState('Clinician manual review & parameter verification');
-  const [markVerified, setMarkVerified] = React.useState(true);
+  // Escape key handler for accessible modal closing
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const handleSave = () => {
     const parsedRange = parseReferenceRange(rawRange);
@@ -49,33 +63,53 @@ export function HumanReviewModal({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+    <div 
+      className="modal-overlay" 
+      onClick={onClose}
+      role="presentation"
+    >
+      <div 
+        className="modal-content" 
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="human-review-title"
+        aria-describedby="human-review-desc"
+      >
         {/* Modal Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.75rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Edit3 size={20} style={{ color: 'var(--primary)' }} />
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700 }}>
-              Human Verification & Field Editing
+            <Edit3 size={20} style={{ color: 'var(--primary)' }} aria-hidden="true" />
+            <h3 id="human-review-title" style={{ fontSize: '1.15rem', fontWeight: 700 }}>
+              Human Verification &amp; Field Editing
             </h3>
           </div>
-          <button type="button" className="btn btn-outline" style={{ padding: '0.35rem' }} onClick={onClose}>
-            <X size={16} />
+          <button 
+            type="button" 
+            className="btn btn-outline" 
+            style={{ padding: '0.35rem' }} 
+            onClick={onClose}
+            aria-label="Close human verification dialog"
+          >
+            <X size={16} aria-hidden="true" />
           </button>
         </div>
 
-        <div style={{
-          background: 'rgba(234, 179, 8, 0.08)',
-          border: '1px solid rgba(234, 179, 8, 0.25)',
-          borderRadius: 'var(--radius-md)',
-          padding: '0.75rem',
-          fontSize: '0.78rem',
-          color: '#fbbf24',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem'
-        }}>
-          <ShieldCheck size={16} style={{ flexShrink: 0 }} />
+        <div 
+          id="human-review-desc"
+          style={{
+            background: 'rgba(234, 179, 8, 0.08)',
+            border: '1px solid rgba(234, 179, 8, 0.25)',
+            borderRadius: 'var(--radius-md)',
+            padding: '0.75rem',
+            fontSize: '0.78rem',
+            color: '#fbbf24',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}
+        >
+          <ShieldCheck size={16} style={{ flexShrink: 0 }} aria-hidden="true" />
           <span>
             Human-in-the-loop validation ensures AI-extracted metrics are verified before becoming part of the permanent clinical record.
           </span>
@@ -88,7 +122,7 @@ export function HumanReviewModal({
               Source Report Excerpt:
             </span>
             <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-primary)', marginTop: '0.2rem' }}>
-              "{parameter.sourceTextSnippet}"
+              &ldquo;{parameter.sourceTextSnippet}&rdquo;
             </p>
           </div>
         )}
@@ -96,8 +130,9 @@ export function HumanReviewModal({
         {/* Form Inputs */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
           <div className="form-group">
-            <label className="form-label">Parameter Canonical Name</label>
+            <label className="form-label" htmlFor="review-param-name">Parameter Canonical Name</label>
             <input 
+              id="review-param-name"
               type="text" 
               className="form-input" 
               value={name} 
@@ -106,8 +141,9 @@ export function HumanReviewModal({
           </div>
 
           <div className="form-group">
-            <label className="form-label">Observed Value</label>
+            <label className="form-label" htmlFor="review-observed-val">Observed Value</label>
             <input 
+              id="review-observed-val"
               type="text" 
               className="form-input" 
               value={value} 
@@ -116,8 +152,9 @@ export function HumanReviewModal({
           </div>
 
           <div className="form-group">
-            <label className="form-label">Measurement Unit</label>
+            <label className="form-label" htmlFor="review-param-unit">Measurement Unit</label>
             <input 
+              id="review-param-unit"
               type="text" 
               className="form-input" 
               value={unit} 
@@ -126,8 +163,9 @@ export function HumanReviewModal({
           </div>
 
           <div className="form-group">
-            <label className="form-label">Reported Reference Range</label>
+            <label className="form-label" htmlFor="review-ref-range">Reported Reference Range</label>
             <input 
+              id="review-ref-range"
               type="text" 
               className="form-input" 
               value={rawRange} 
@@ -139,8 +177,9 @@ export function HumanReviewModal({
 
         {/* Audit Comment */}
         <div className="form-group">
-          <label className="form-label">Audit Log Comment / Reason for Edit</label>
+          <label className="form-label" htmlFor="review-audit-comment">Audit Log Comment / Reason for Edit</label>
           <input 
+            id="review-audit-comment"
             type="text" 
             className="form-input" 
             placeholder="e.g., Corrected OCR misread digit from source PDF..."
@@ -150,8 +189,12 @@ export function HumanReviewModal({
         </div>
 
         {/* Verification Checkbox */}
-        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600 }}>
+        <label 
+          htmlFor="review-mark-verified"
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600 }}
+        >
           <input 
+            id="review-mark-verified"
             type="checkbox" 
             checked={markVerified} 
             onChange={(e) => setMarkVerified(e.target.checked)} 
@@ -166,10 +209,27 @@ export function HumanReviewModal({
             Cancel
           </button>
           <button type="button" className="btn btn-primary" onClick={handleSave}>
-            <CheckCircle size={15} /> Save & Record Audit Entry
+            <CheckCircle size={15} aria-hidden="true" /> Save &amp; Record Audit Entry
           </button>
         </div>
       </div>
     </div>
+  );
+}
+
+export function HumanReviewModal({
+  parameter,
+  isOpen,
+  onClose,
+  onSave
+}: HumanReviewModalProps) {
+  if (!isOpen || !parameter) return null;
+
+  return (
+    <HumanReviewModalContent 
+      parameter={parameter}
+      onClose={onClose}
+      onSave={onSave}
+    />
   );
 }

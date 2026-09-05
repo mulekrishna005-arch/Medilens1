@@ -1,4 +1,4 @@
-import { LabParameter } from '@/types';
+import type { LabParameter } from '@/types';
 import { normalizeTestName } from './medicalDictionary';
 import { parseReferenceRange, evaluateReferenceRange } from './referenceRangeEvaluator';
 
@@ -42,23 +42,39 @@ export function extractParametersFromText(
     // Example: "HbA1c 8.2 % (4.0-5.6)"
     // Example: "Serum Creatinine  1.6  mg/dL  0.7-1.3"
 
-    // Try colon format: "Test Name: Value Unit (Ref Range)"
-    const colonMatch = line.match(/^([^:0-9]+):\s*([0-9.,]+|[a-zA-Z]+)\s*([a-zA-Z/%³²µu/]+)?(?:\s*[\(\[]?([^()\[\]\n]+)[\)\]]?)?/i);
+    let rawName = '';
+    let rawValue = '';
+    let rawUnit = '';
+    let rawRange = '';
 
-    // Try multi-space column format: "Test Name    Value   Unit   Range"
-    const columnMatch = line.match(/^([a-zA-Z0-9\s/().+-]+?)\s{2,}([0-9.,]+|[a-zA-Z]+)(?:\s+([a-zA-Z/%³²µu/]+))?(?:\s+(.+))?$/);
+    if (line.includes('|')) {
+      const parts = line.split('|').map(p => p.trim());
+      if (parts.length >= 2) {
+        rawName = parts[0];
+        rawValue = parts[1];
+        rawUnit = parts[2] || '';
+        rawRange = parts[3] || '';
+      }
+    } else {
+      // Try colon format: "Test Name: Value Unit (Ref Range)"
+      const colonMatch = line.match(/^([^:0-9]+):\s*([0-9.,]+|[a-zA-Z]+)\s*([a-zA-Z/%³²µu/]+)?(?:\s*[\(\[]?([^()\[\]\n]+)[\)\]]?)?/i);
 
-    // Try loose regex if neither matches
-    const looseMatch = line.match(/^([a-zA-Z\s/()+-]+?)\s+([0-9.,]+)\s*([a-zA-Z/%³²µu/]+)?(?:\s+(.+))?$/);
+      // Try multi-space column format: "Test Name    Value   Unit   Range"
+      const columnMatch = line.match(/^([a-zA-Z0-9\s/().+-]+?)\s{2,}([0-9.,]+|[a-zA-Z]+)(?:\s+([a-zA-Z/%³²µu/]+))?(?:\s+(.+))?$/);
 
-    const match = colonMatch || columnMatch || looseMatch;
+      // Try loose regex if neither matches
+      const looseMatch = line.match(/^([a-zA-Z\s/()+-]+?)\s+([0-9.,]+)\s*([a-zA-Z/%³²µu/]+)?(?:\s+(.+))?$/);
 
-    if (match) {
-      const rawName = match[1]?.trim();
-      const rawValue = match[2]?.trim();
-      const rawUnit = match[3]?.trim() || '';
-      const rawRange = match[4]?.trim() || '';
+      const match = colonMatch || columnMatch || looseMatch;
+      if (match) {
+        rawName = match[1]?.trim();
+        rawValue = match[2]?.trim();
+        rawUnit = match[3]?.trim() || '';
+        rawRange = match[4]?.trim() || '';
+      }
+    }
 
+    if (rawName && rawValue) {
       // Validate that rawName looks like a clinical test
       if (!rawName || rawName.length < 2 || rawName.split(' ').length > 6) continue;
       if (!rawValue || rawValue.toLowerCase() === 'test') continue;

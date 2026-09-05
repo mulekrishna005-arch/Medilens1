@@ -132,7 +132,9 @@ export function IntakeForm({ intake, onChange }: IntakeFormProps) {
         </div>
 
         <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <label htmlFor="symptom-input" className="sr-only">Add Symptom or Chief Concern</label>
           <input 
+            id="symptom-input"
             type="text"
             className="form-input"
             placeholder="e.g., Persistent fatigue, cold sensitivity..."
@@ -145,8 +147,8 @@ export function IntakeForm({ intake, onChange }: IntakeFormProps) {
               }
             }}
           />
-          <button type="button" className="btn btn-secondary" onClick={addSymptom}>
-            <Plus size={16} /> Add
+          <button type="button" className="btn btn-secondary" onClick={addSymptom} aria-label="Add symptom to patient intake">
+            <Plus size={16} aria-hidden="true" /> Add
           </button>
         </div>
 
@@ -159,17 +161,26 @@ export function IntakeForm({ intake, onChange }: IntakeFormProps) {
                 style={{ padding: '0.3rem 0.6rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
               >
                 {symptom}
-                <Trash2 
-                  size={12} 
-                  style={{ cursor: 'pointer', opacity: 0.7 }} 
-                  onClick={() => removeSymptom(i)} 
-                />
+                <button
+                  type="button"
+                  aria-label={`Remove symptom ${symptom}`}
+                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'inline-flex', color: 'inherit' }}
+                  onClick={() => removeSymptom(i)}
+                >
+                  <Trash2 
+                    size={12} 
+                    aria-hidden="true"
+                    style={{ opacity: 0.7 }} 
+                  />
+                </button>
               </span>
             ))}
           </div>
         )}
 
+        <label htmlFor="symptom-progression-notes" className="sr-only">Symptom progression notes</label>
         <input 
+          id="symptom-progression-notes"
           type="text"
           className="form-input"
           placeholder="Optional symptom progression notes (e.g., worsened over 6 weeks)..."
@@ -183,11 +194,12 @@ export function IntakeForm({ intake, onChange }: IntakeFormProps) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
         {/* Existing Medical Conditions */}
         <div className="form-group">
-          <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <FileText size={14} style={{ color: 'var(--primary)' }} /> Existing Medical Conditions
+          <label className="form-label" htmlFor="condition-input" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <FileText size={14} aria-hidden="true" style={{ color: 'var(--primary)' }} /> Existing Medical Conditions
           </label>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <input 
+              id="condition-input"
               type="text"
               className="form-input"
               placeholder="e.g., Menorrhagia, Hypertension..."
@@ -200,8 +212,8 @@ export function IntakeForm({ intake, onChange }: IntakeFormProps) {
                 }
               }}
             />
-            <button type="button" className="btn btn-secondary" onClick={addCondition}>
-              <Plus size={16} />
+            <button type="button" className="btn btn-secondary" onClick={addCondition} aria-label="Add medical condition">
+              <Plus size={16} aria-hidden="true" />
             </button>
           </div>
           {intake.existingConditions.length > 0 && (
@@ -209,7 +221,14 @@ export function IntakeForm({ intake, onChange }: IntakeFormProps) {
               {intake.existingConditions.map((cond, i) => (
                 <span key={i} className="badge-prov prov-intake" style={{ padding: '0.25rem 0.5rem' }}>
                   {cond}
-                  <Trash2 size={11} style={{ cursor: 'pointer', marginLeft: '0.35rem' }} onClick={() => removeCondition(i)} />
+                  <button
+                    type="button"
+                    aria-label={`Remove condition ${cond}`}
+                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'inline-flex', color: 'inherit', marginLeft: '0.35rem' }}
+                    onClick={() => removeCondition(i)}
+                  >
+                    <Trash2 size={11} aria-hidden="true" />
+                  </button>
                 </span>
               ))}
             </div>
@@ -218,11 +237,12 @@ export function IntakeForm({ intake, onChange }: IntakeFormProps) {
 
         {/* Known Allergies */}
         <div className="form-group">
-          <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <AlertCircle size={14} style={{ color: '#f59e0b' }} /> Known Allergies
+          <label className="form-label" htmlFor="allergy-input" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <AlertCircle size={14} aria-hidden="true" style={{ color: '#f59e0b' }} /> Known Allergies
           </label>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <input 
+              id="allergy-input"
               type="text"
               className="form-input"
               placeholder="e.g., Penicillin, Sulfa, Latex (or leave blank if none)..."
@@ -235,8 +255,8 @@ export function IntakeForm({ intake, onChange }: IntakeFormProps) {
                 }
               }}
             />
-            <button type="button" className="btn btn-secondary" onClick={addAllergy}>
-              <Plus size={16} />
+            <button type="button" className="btn btn-secondary" onClick={addAllergy} aria-label="Add allergy">
+              <Plus size={16} aria-hidden="true" />
             </button>
           </div>
           {intake.allergies.length > 0 ? (
@@ -244,7 +264,14 @@ export function IntakeForm({ intake, onChange }: IntakeFormProps) {
               {intake.allergies.map((allergy, i) => (
                 <span key={i} className="badge-prov prov-intake" style={{ padding: '0.25rem 0.5rem', borderColor: '#f59e0b', color: '#fbbf24' }}>
                   {allergy}
-                  <Trash2 size={11} style={{ cursor: 'pointer', marginLeft: '0.35rem' }} onClick={() => removeAllergy(i)} />
+                  <button
+                    type="button"
+                    aria-label={`Remove allergy ${allergy}`}
+                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'inline-flex', color: 'inherit', marginLeft: '0.35rem' }}
+                    onClick={() => removeAllergy(i)}
+                  >
+                    <Trash2 size={11} aria-hidden="true" />
+                  </button>
                 </span>
               ))}
             </div>
@@ -260,10 +287,10 @@ export function IntakeForm({ intake, onChange }: IntakeFormProps) {
       <div className="form-group">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <Pill size={14} style={{ color: '#818cf8' }} /> Current Medications & Supplements
+            <Pill size={14} aria-hidden="true" style={{ color: '#818cf8' }} /> Current Medications &amp; Supplements
           </label>
-          <button type="button" className="btn btn-outline" style={{ padding: '0.3rem 0.75rem', fontSize: '0.75rem' }} onClick={addMedication}>
-            <Plus size={14} /> Add Medication
+          <button type="button" className="btn btn-outline" style={{ padding: '0.3rem 0.75rem', fontSize: '0.75rem' }} onClick={addMedication} aria-label="Add a medication row">
+            <Plus size={14} aria-hidden="true" /> Add Medication
           </button>
         </div>
 
@@ -291,6 +318,7 @@ export function IntakeForm({ intake, onChange }: IntakeFormProps) {
                   type="text" 
                   className="form-input" 
                   placeholder="Medication name (e.g. Metformin)" 
+                  aria-label={`Medication name ${idx + 1}`}
                   value={med.name} 
                   onChange={(e) => updateMedication(idx, 'name', e.target.value)} 
                 />
@@ -298,6 +326,7 @@ export function IntakeForm({ intake, onChange }: IntakeFormProps) {
                   type="text" 
                   className="form-input" 
                   placeholder="Dose (e.g. 1000 mg)" 
+                  aria-label={`Medication dose ${idx + 1}`}
                   value={med.dosage || ''} 
                   onChange={(e) => updateMedication(idx, 'dosage', e.target.value)} 
                 />
@@ -305,6 +334,7 @@ export function IntakeForm({ intake, onChange }: IntakeFormProps) {
                   type="text" 
                   className="form-input" 
                   placeholder="Frequency (e.g. Twice daily)" 
+                  aria-label={`Medication frequency ${idx + 1}`}
                   value={med.frequency || ''} 
                   onChange={(e) => updateMedication(idx, 'frequency', e.target.value)} 
                 />
@@ -314,8 +344,9 @@ export function IntakeForm({ intake, onChange }: IntakeFormProps) {
                   style={{ padding: '0.45rem', color: '#f43f5e' }} 
                   onClick={() => removeMedication(idx)}
                   title="Remove medication"
+                  aria-label={`Remove medication ${med.name || (idx + 1)}`}
                 >
-                  <Trash2 size={14} />
+                  <Trash2 size={14} aria-hidden="true" />
                 </button>
               </div>
             ))}

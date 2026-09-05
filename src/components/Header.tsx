@@ -24,9 +24,21 @@ export function Header({ onSelectScenario, activeScenarioId, isVerified }: Heade
     <header className="med-header">
       <div className="med-container header-inner">
         {/* Brand Section */}
-        <div className="brand-badge" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+        <div 
+          className="brand-badge" 
+          role="button"
+          tabIndex={0}
+          aria-label="MedLens Clinical Intelligence Home - Scroll to top"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          }}
+        >
           <div className="brand-icon-box">
-            <Activity size={24} strokeWidth={2.5} />
+            <Activity size={24} strokeWidth={2.5} aria-hidden="true" />
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -34,11 +46,11 @@ export function Header({ onSelectScenario, activeScenarioId, isVerified }: Heade
                 Med<span className="gradient-teal">Lens</span>
               </h1>
               <span className="badge-prov prov-ai" style={{ fontSize: '0.65rem' }}>
-                <Sparkles size={11} /> Clinical Intelligence
+                <Sparkles size={11} aria-hidden="true" /> Clinical Intelligence
               </span>
               {isVerified && (
                 <span className="badge-prov prov-verified" style={{ fontSize: '0.65rem' }}>
-                  <FileCheck size={11} /> Verified Record
+                  <FileCheck size={11} aria-hidden="true" /> Verified Record
                 </span>
               )}
             </div>
@@ -51,12 +63,13 @@ export function Header({ onSelectScenario, activeScenarioId, isVerified }: Heade
         {/* Quick Demo Scenarios Selector (1-Click Instant Evaluation) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Stethoscope size={16} style={{ color: 'var(--primary)' }} />
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+            <Stethoscope size={16} aria-hidden="true" style={{ color: 'var(--primary)' }} />
+            <label htmlFor="demo-scenarios-select" style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
               Demo Cases:
-            </span>
+            </label>
           </div>
           <select 
+            id="demo-scenarios-select"
             className="form-select"
             style={{ width: 'auto', minWidth: '220px', padding: '0.45rem 0.75rem', fontSize: '0.8rem' }}
             value={activeScenarioId || ''}
@@ -82,7 +95,7 @@ export function Header({ onSelectScenario, activeScenarioId, isVerified }: Heade
             title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} theme`}
             aria-label="Toggle theme"
           >
-            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            {theme === 'dark' ? <Sun size={16} aria-hidden="true" /> : <Moon size={16} aria-hidden="true" />}
           </button>
         </div>
       </div>

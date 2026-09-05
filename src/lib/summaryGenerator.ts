@@ -1,4 +1,4 @@
-import { PatientIntake, LabParameter, ConflictAlert, ClarificationQuestion, AISummary, LongitudinalComparisonItem } from '@/types';
+import type { PatientIntake, LabParameter, ConflictAlert, ClarificationQuestion, AISummary, LongitudinalComparisonItem } from '@/types';
 
 /**
  * Synthesizes a structured, patient-friendly clinical intelligence summary.

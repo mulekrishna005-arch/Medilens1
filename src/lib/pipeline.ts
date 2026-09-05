@@ -1,4 +1,4 @@
-import { PatientIntake, MedicalRecordData, AuditLogEntry } from '@/types';
+import type { PatientIntake, MedicalRecordData, AuditLogEntry } from '@/types';
 import { extractParametersFromText } from './reportParser';
 import { detectConflicts } from './conflictDetector';
 import { generateClarificationQuestions } from './clarificationGenerator';

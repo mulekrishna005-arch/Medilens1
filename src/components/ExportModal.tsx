@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { Download, Printer, X, ShieldCheck } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { Printer, X } from 'lucide-react';
 import { MedicalRecordData } from '@/types';
 
 interface ExportModalProps {
@@ -11,6 +11,18 @@ interface ExportModalProps {
 }
 
 export function ExportModal({ record, isOpen, onClose }: ExportModalProps) {
+  // Escape key handler for accessible modal dismissal
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen || !record) return null;
 
   const handlePrint = () => {
@@ -18,28 +30,47 @@ export function ExportModal({ record, isOpen, onClose }: ExportModalProps) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div 
+      className="modal-overlay" 
+      onClick={onClose}
+      role="presentation"
+    >
       <div 
         className="modal-content" 
         style={{ maxWidth: '840px' }} 
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="export-summary-title"
+        aria-describedby="export-summary-desc"
       >
         {/* Modal Controls (Hidden in Print) */}
         <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.75rem' }}>
           <div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700 }}>
+            <h3 id="export-summary-title" style={{ fontSize: '1.15rem', fontWeight: 700 }}>
               Exportable Clinical Health Summary
             </h3>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            <p id="export-summary-desc" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
               Standardized summary suitable for clinical chart archiving or physician consultation.
             </p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <button type="button" className="btn btn-primary" onClick={handlePrint}>
-              <Printer size={15} /> Print / Save as PDF
+            <button 
+              type="button" 
+              className="btn btn-primary" 
+              onClick={handlePrint}
+              aria-label="Print or save as PDF"
+            >
+              <Printer size={15} aria-hidden="true" /> Print / Save as PDF
             </button>
-            <button type="button" className="btn btn-outline" style={{ padding: '0.4rem' }} onClick={onClose}>
-              <X size={16} />
+            <button 
+              type="button" 
+              className="btn btn-outline" 
+              style={{ padding: '0.4rem' }} 
+              onClick={onClose}
+              aria-label="Close export summary dialog"
+            >
+              <X size={16} aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -66,7 +97,7 @@ export function ExportModal({ record, isOpen, onClose }: ExportModalProps) {
                 MedLens Clinical Information Summary
               </h1>
               <p style={{ fontSize: '0.8rem', color: '#4b5563', marginTop: '0.2rem' }}>
-                Structured Patient Health Record & Diagnostic Laboratory Analysis
+                Structured Patient Health Record &amp; Diagnostic Laboratory Analysis
               </p>
             </div>
             <div style={{ textAlign: 'right', fontSize: '0.75rem', color: '#4b5563' }}>
@@ -91,7 +122,7 @@ export function ExportModal({ record, isOpen, onClose }: ExportModalProps) {
           {/* Clinical Intake Disclosures */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.82rem' }}>
             <div style={{ border: '1px solid #e5e7eb', padding: '0.75rem', borderRadius: '6px' }}>
-              <strong style={{ color: '#0891b2', display: 'block', marginBottom: '0.35rem' }}>Reported Symptoms & Concerns:</strong>
+              <strong style={{ color: '#0891b2', display: 'block', marginBottom: '0.35rem' }}>Reported Symptoms &amp; Concerns:</strong>
               <p>{record.patient.symptoms.length ? record.patient.symptoms.join(', ') : 'None reported'}</p>
               {record.patient.symptomNotes && (
                 <p style={{ fontStyle: 'italic', fontSize: '0.75rem', marginTop: '0.25rem', color: '#6b7280' }}>
@@ -129,20 +160,23 @@ export function ExportModal({ record, isOpen, onClose }: ExportModalProps) {
             <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#111827', marginBottom: '0.5rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.25rem' }}>
               Laboratory Findings (Strict Source Reference Ranges)
             </h3>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+            <table aria-label="Laboratory Findings Table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+              <caption className="sr-only">
+                Laboratory Findings Table with Strict Source Reference Ranges, Observed Results, and Verification Status.
+              </caption>
               <thead>
                 <tr style={{ background: '#f3f4f6', textAlign: 'left' }}>
-                  <th style={{ padding: '6px 8px', border: '1px solid #e5e7eb' }}>Investigation</th>
-                  <th style={{ padding: '6px 8px', border: '1px solid #e5e7eb' }}>Observed Result</th>
-                  <th style={{ padding: '6px 8px', border: '1px solid #e5e7eb' }}>Reference Interval</th>
-                  <th style={{ padding: '6px 8px', border: '1px solid #e5e7eb' }}>Status</th>
-                  <th style={{ padding: '6px 8px', border: '1px solid #e5e7eb' }}>Verification</th>
+                  <th scope="col" style={{ padding: '6px 8px', border: '1px solid #e5e7eb' }}>Investigation</th>
+                  <th scope="col" style={{ padding: '6px 8px', border: '1px solid #e5e7eb' }}>Observed Result</th>
+                  <th scope="col" style={{ padding: '6px 8px', border: '1px solid #e5e7eb' }}>Reference Interval</th>
+                  <th scope="col" style={{ padding: '6px 8px', border: '1px solid #e5e7eb' }}>Status</th>
+                  <th scope="col" style={{ padding: '6px 8px', border: '1px solid #e5e7eb' }}>Verification</th>
                 </tr>
               </thead>
               <tbody>
                 {record.currentParameters.map((p) => (
                   <tr key={p.id} style={{ background: p.status === 'CRITICAL' ? '#fef2f2' : p.status === 'LOW' ? '#fffbeb' : p.status === 'HIGH' ? '#fff1f2' : 'white' }}>
-                    <td style={{ padding: '6px 8px', border: '1px solid #e5e7eb', fontWeight: 600 }}>{p.canonicalName}</td>
+                    <th scope="row" style={{ textAlign: 'left', padding: '6px 8px', border: '1px solid #e5e7eb', fontWeight: 600 }}>{p.canonicalName}</th>
                     <td style={{ padding: '6px 8px', border: '1px solid #e5e7eb', fontFamily: 'monospace', fontWeight: 700 }}>{p.observedValue} {p.unit}</td>
                     <td style={{ padding: '6px 8px', border: '1px solid #e5e7eb', color: '#4b5563' }}>{p.referenceRange.rawText}</td>
                     <td style={{ padding: '6px 8px', border: '1px solid #e5e7eb', fontWeight: 700 }}>{p.status}</td>

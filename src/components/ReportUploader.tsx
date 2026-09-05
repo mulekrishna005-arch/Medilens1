@@ -60,20 +60,48 @@ export function ReportUploader({
         </div>
 
         {/* Tab Toggle for Current vs Previous Report */}
-        <div style={{ display: 'flex', background: 'var(--bg-surface)', padding: '0.2rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+        <div 
+          role="tablist"
+          aria-label="Medical Report Ingestion Type"
+          style={{ display: 'flex', background: 'var(--bg-surface)', padding: '0.2rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}
+        >
           <button 
+            id="tab-current-report"
+            role="tab"
+            aria-selected={activeTab === 'current'}
+            aria-controls="panel-current-report"
+            tabIndex={activeTab === 'current' ? 0 : -1}
             type="button" 
             className={`btn ${activeTab === 'current' ? 'btn-primary' : 'btn-outline'}`}
             style={{ padding: '0.35rem 0.85rem', fontSize: '0.78rem' }}
             onClick={() => setActiveTab('current')}
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                e.preventDefault();
+                setActiveTab('previous');
+                document.getElementById('tab-previous-report')?.focus();
+              }
+            }}
           >
             Current Report *
           </button>
           <button 
+            id="tab-previous-report"
+            role="tab"
+            aria-selected={activeTab === 'previous'}
+            aria-controls="panel-previous-report"
+            tabIndex={activeTab === 'previous' ? 0 : -1}
             type="button" 
             className={`btn ${activeTab === 'previous' ? 'btn-primary' : 'btn-outline'}`}
             style={{ padding: '0.35rem 0.85rem', fontSize: '0.78rem' }}
             onClick={() => setActiveTab('previous')}
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                e.preventDefault();
+                setActiveTab('current');
+                document.getElementById('tab-current-report')?.focus();
+              }
+            }}
           >
             Previous Report (Optional) {previousReportText.trim() && '•'}
           </button>
@@ -82,7 +110,12 @@ export function ReportUploader({
 
       {/* Tab 1: Current Medical Report */}
       {activeTab === 'current' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+        <div 
+          id="panel-current-report"
+          role="tabpanel"
+          aria-labelledby="tab-current-report"
+          style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <span className="badge-prov prov-report">Source: Current Laboratory Document</span>
@@ -93,9 +126,10 @@ export function ReportUploader({
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <Calendar size={14} style={{ color: 'var(--text-muted)' }} />
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Report Date:</span>
+                <Calendar size={14} aria-hidden="true" style={{ color: 'var(--text-muted)' }} />
+                <label htmlFor="current-report-date-input" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Report Date:</label>
                 <input 
+                  id="current-report-date-input"
                   type="date" 
                   className="form-input" 
                   style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', width: 'auto' }}
@@ -109,6 +143,7 @@ export function ReportUploader({
                 ref={fileInputRef} 
                 accept=".txt,.csv,.log,.json" 
                 style={{ display: 'none' }}
+                aria-label="Upload medical report file"
                 onChange={(e) => handleFileUpload(e, 'current')}
               />
               <button 
@@ -116,8 +151,9 @@ export function ReportUploader({
                 className="btn btn-outline" 
                 style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
                 onClick={() => fileInputRef.current?.click()}
+                aria-label="Upload report file"
               >
-                <FileUp size={14} /> Upload File
+                <FileUp size={14} aria-hidden="true" /> Upload File
               </button>
               {currentReportText && (
                 <button 
@@ -126,14 +162,17 @@ export function ReportUploader({
                   style={{ padding: '0.35rem 0.5rem', fontSize: '0.75rem' }}
                   onClick={() => onCurrentReportChange('')}
                   title="Clear report text"
+                  aria-label="Clear current report text"
                 >
-                  <RotateCcw size={13} />
+                  <RotateCcw size={13} aria-hidden="true" />
                 </button>
               )}
             </div>
           </div>
 
+          <label htmlFor="current-report-textarea" className="sr-only">Current clinical or laboratory report text</label>
           <textarea 
+            id="current-report-textarea"
             className="form-textarea" 
             placeholder="Paste current clinical or laboratory report text here (including parameter names, values, units, and reference ranges)..."
             rows={7}
@@ -150,7 +189,12 @@ export function ReportUploader({
 
       {/* Tab 2: Previous Report (Optional) */}
       {activeTab === 'previous' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+        <div 
+          id="panel-previous-report"
+          role="tabpanel"
+          aria-labelledby="tab-previous-report"
+          style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <span className="badge-prov prov-previous">Source: Prior Report (Longitudinal History)</span>
@@ -161,9 +205,10 @@ export function ReportUploader({
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <Clock size={14} style={{ color: 'var(--text-muted)' }} />
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Prior Date:</span>
+                <Clock size={14} aria-hidden="true" style={{ color: 'var(--text-muted)' }} />
+                <label htmlFor="previous-report-date-input" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Prior Date:</label>
                 <input 
+                  id="previous-report-date-input"
                   type="date" 
                   className="form-input" 
                   style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', width: 'auto' }}
@@ -177,8 +222,9 @@ export function ReportUploader({
                 className="btn btn-outline" 
                 style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
                 onClick={() => fileInputRef.current?.click()}
+                aria-label="Upload previous report file"
               >
-                <FileUp size={14} /> Upload File
+                <FileUp size={14} aria-hidden="true" /> Upload File
               </button>
               {previousReportText && (
                 <button 
@@ -187,14 +233,17 @@ export function ReportUploader({
                   style={{ padding: '0.35rem 0.5rem', fontSize: '0.75rem' }}
                   onClick={() => onPreviousReportChange('')}
                   title="Clear previous report"
+                  aria-label="Clear previous report text"
                 >
-                  <RotateCcw size={13} />
+                  <RotateCcw size={13} aria-hidden="true" />
                 </button>
               )}
             </div>
           </div>
 
+          <label htmlFor="previous-report-textarea" className="sr-only">Previous laboratory report text</label>
           <textarea 
+            id="previous-report-textarea"
             className="form-textarea" 
             placeholder="Optionally paste a previous laboratory report here to generate automated longitudinal trend arrows (↑ / ↓), percentage shifts, and conflict analysis..."
             rows={7}
@@ -217,6 +266,7 @@ export function ReportUploader({
           style={{ padding: '0.75rem 2rem', fontSize: '0.95rem' }}
           disabled={!currentReportText.trim() || isProcessing}
           onClick={onRunPipeline}
+          aria-label="Process and analyze medical record"
         >
           {isProcessing ? (
             <>

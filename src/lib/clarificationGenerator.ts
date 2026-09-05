@@ -1,4 +1,4 @@
-import { PatientIntake, LabParameter, ClarificationQuestion } from '@/types';
+import type { PatientIntake, LabParameter, ClarificationQuestion } from '@/types';
 
 /**
  * Generates 3 to 5 targeted, context-aware clarification questions

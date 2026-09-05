@@ -43,16 +43,19 @@ export function LongitudinalComparisonView({
 
       {/* Comparison Table */}
       <div className="table-wrapper">
-        <table className="med-table">
+        <table className="med-table" aria-label="Longitudinal Laboratory Trend Analysis">
+          <caption className="sr-only">
+            Longitudinal Laboratory Trend Analysis comparing previous and current test results, percentage shifts, and clinical trajectories.
+          </caption>
           <thead>
             <tr>
-              <th>Test Parameter</th>
-              <th>Previous Result</th>
-              <th>Current Result</th>
-              <th>Absolute Delta</th>
-              <th>% Shift</th>
-              <th>Trend</th>
-              <th>Clinical Trajectory Observation</th>
+              <th scope="col">Test Parameter</th>
+              <th scope="col">Previous Result</th>
+              <th scope="col">Current Result</th>
+              <th scope="col">Absolute Delta</th>
+              <th scope="col">% Shift</th>
+              <th scope="col">Trend</th>
+              <th scope="col">Clinical Trajectory Observation</th>
             </tr>
           </thead>
           <tbody>
@@ -63,9 +66,9 @@ export function LongitudinalComparisonView({
 
               return (
                 <tr key={item.parameterId}>
-                  <td style={{ fontWeight: 700, color: 'var(--text-heading)' }}>
+                  <th scope="row" style={{ textAlign: 'left', fontWeight: 700, color: 'var(--text-heading)', padding: '0.75rem' }}>
                     {item.canonicalName}
-                  </td>
+                  </th>
 
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
@@ -110,19 +113,20 @@ export function LongitudinalComparisonView({
                   </td>
 
                   <td>
+                    <span className="sr-only">Trend: </span>
                     {isIncrease && (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', color: '#fb7185', fontWeight: 700, fontSize: '0.8rem' }}>
-                        <TrendingUp size={14} /> Increased
+                        <TrendingUp size={14} aria-hidden="true" /> Increased
                       </span>
                     )}
                     {isDecrease && (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', color: '#38bdf8', fontWeight: 700, fontSize: '0.8rem' }}>
-                        <TrendingDown size={14} /> Decreased
+                        <TrendingDown size={14} aria-hidden="true" /> Decreased
                       </span>
                     )}
                     {isStable && (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', color: '#34d399', fontWeight: 600, fontSize: '0.8rem' }}>
-                        <Minus size={14} /> Stable
+                        <Minus size={14} aria-hidden="true" /> Stable
                       </span>
                     )}
                   </td>

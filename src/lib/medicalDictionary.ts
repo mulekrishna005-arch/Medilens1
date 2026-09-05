@@ -1,4 +1,4 @@
-import { TestCategory } from '@/types';
+import type { TestCategory } from '@/types';
 
 interface TermMapping {
   canonical: string;
@@ -273,9 +273,16 @@ export function normalizeTestName(rawName: string): {
     }
   }
 
-  // 2. Substring or keyword match
+  // 2. Substring or keyword match (enforce word boundaries for short abbreviations like 'k' or 'ca')
   for (const entry of Object.values(MEDICAL_DICTIONARY)) {
-    if (entry.aliases.some(alias => cleaned.includes(alias) || alias.includes(cleaned))) {
+    if (entry.aliases.some(alias => {
+      if (alias.length <= 2) {
+        const escaped = alias.replace(/[+]/g, '\\+');
+        const regex = new RegExp(`(?:^|\\s)${escaped}(?:$|\\s)`, 'i');
+        return regex.test(cleaned);
+      }
+      return cleaned.includes(alias) || alias.includes(cleaned);
+    })) {
       return {
         canonicalName: entry.canonical,
         category: entry.category,

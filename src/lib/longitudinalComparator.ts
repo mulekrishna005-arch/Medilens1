@@ -1,4 +1,4 @@
-import { LabParameter, LongitudinalComparisonItem } from '@/types';
+import type { LabParameter, LongitudinalComparisonItem } from '@/types';
 
 /**
  * Performs structured, quantitative comparison between extracted parameters

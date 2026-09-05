@@ -26,10 +26,11 @@ export async function POST(req: NextRequest) {
       success: true,
       data: record
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error in MedLens pipeline processing:', err);
+    const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred during medical report processing.';
     return NextResponse.json(
-      { error: err.message || 'An unexpected error occurred during medical report processing.' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

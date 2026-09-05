@@ -7,9 +7,7 @@ import {
   Filter, 
   Edit3, 
   CheckCircle2, 
-  AlertOctagon, 
   ShieldCheck, 
-  Eye, 
   FileCheck,
   Download,
   Clock
@@ -165,8 +163,10 @@ export function StructuredRecordView({
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', background: 'var(--bg-surface)', padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
         {/* Search Input */}
         <div style={{ position: 'relative', flex: '1', minWidth: '240px' }}>
-          <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <label htmlFor="search-lab-tests" className="sr-only">Search laboratory tests</label>
+          <Search size={15} aria-hidden="true" style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
           <input 
+            id="search-lab-tests"
             type="text"
             className="form-input"
             style={{ paddingLeft: '2.2rem', fontSize: '0.8rem' }}
@@ -178,8 +178,10 @@ export function StructuredRecordView({
 
         {/* Category Selector */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Filter size={15} style={{ color: 'var(--text-muted)' }} />
+          <label htmlFor="filter-panel-category" className="sr-only">Filter by Clinical Panel</label>
+          <Filter size={15} aria-hidden="true" style={{ color: 'var(--text-muted)' }} />
           <select 
+            id="filter-panel-category"
             className="form-select"
             style={{ fontSize: '0.8rem', padding: '0.45rem 0.75rem', width: 'auto' }}
             value={selectedCategory}
@@ -199,8 +201,9 @@ export function StructuredRecordView({
         </div>
 
         {/* Abnormal Only Toggle */}
-        <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+        <label htmlFor="filter-abnormal-only" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
           <input 
+            id="filter-abnormal-only"
             type="checkbox"
             checked={filterAbnormalOnly}
             onChange={(e) => setFilterAbnormalOnly(e.target.checked)}
@@ -212,16 +215,19 @@ export function StructuredRecordView({
 
       {/* Main Extracted Parameters Table */}
       <div className="table-wrapper">
-        <table className="med-table">
+        <table className="med-table" aria-label="Structured Clinical Laboratory Parameters">
+          <caption className="sr-only">
+            Extracted Clinical Laboratory Parameters with source reference ranges, confidence indicators, and review actions.
+          </caption>
           <thead>
             <tr>
-              <th>Investigation / Parameter</th>
-              <th>Observed Result</th>
-              <th>Source Reference Range</th>
-              <th>Status</th>
-              <th>Category Panel</th>
-              <th>Provenance & Confidence</th>
-              <th>Human Review</th>
+              <th scope="col">Investigation / Parameter</th>
+              <th scope="col">Observed Result</th>
+              <th scope="col">Source Reference Range</th>
+              <th scope="col">Status</th>
+              <th scope="col">Category Panel</th>
+              <th scope="col">Provenance &amp; Confidence</th>
+              <th scope="col">Human Review</th>
             </tr>
           </thead>
           <tbody>
@@ -237,23 +243,22 @@ export function StructuredRecordView({
                 const isHigh = param.status === 'HIGH';
                 const isLow = param.status === 'LOW';
                 const isNormal = param.status === 'NORMAL';
-                const isUnspecified = param.status === 'UNSPECIFIED';
 
                 return (
                   <tr key={param.id}>
-                    {/* Test Name with Synonyms */}
-                    <td>
+                    {/* Test Name with Synonyms as Row Header */}
+                    <th scope="row" style={{ textAlign: 'left', fontWeight: 'normal', padding: '0.75rem' }}>
                       <div>
                         <span style={{ fontWeight: 700, color: 'var(--text-heading)', fontSize: '0.9rem' }}>
                           {param.canonicalName}
                         </span>
                         {param.name.toLowerCase() !== param.canonicalName.toLowerCase() && (
                           <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                            Reported as: "{param.name}"
+                            Reported as: &ldquo;{param.name}&rdquo;
                           </span>
                         )}
                       </div>
-                    </td>
+                    </th>
 
                     {/* Observed Result with Unit */}
                     <td>
@@ -325,14 +330,15 @@ export function StructuredRecordView({
                           className="btn btn-outline"
                           style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem' }}
                           onClick={() => onEditParameter(param)}
-                          title="Edit extracted value or verify"
+                          title={`Review or edit ${param.canonicalName}`}
+                          aria-label={`Review or edit ${param.canonicalName}, observed value ${param.observedValue} ${param.unit}, status ${param.status}`}
                         >
-                          <Edit3 size={13} />
+                          <Edit3 size={13} aria-hidden="true" />
                           {param.isHumanVerified ? 'Verified' : 'Review'}
                         </button>
                         {param.isHumanVerified && (
-                          <span title="Verified by clinician" style={{ display: 'inline-flex', alignItems: 'center' }}>
-                            <CheckCircle2 size={16} style={{ color: '#10b981' }} />
+                          <span title="Verified by clinician" aria-label="Verified by clinician" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                            <CheckCircle2 size={16} style={{ color: '#10b981' }} aria-hidden="true" />
                           </span>
                         )}
                       </div>

@@ -1,4 +1,4 @@
-import { RangeStatus } from '@/types';
+import type { RangeStatus } from '@/types';
 
 export interface ParsedRange {
   rawText: string;
@@ -31,15 +31,22 @@ export function parseReferenceRange(rawRange?: string | null): ParsedRange {
   }
 
   const cleaned = rawRange.trim();
+  const lowerCleaned = cleaned.toLowerCase();
   if (
     !cleaned ||
-    cleaned.toLowerCase() === 'n/a' ||
-    cleaned.toLowerCase() === 'none' ||
-    cleaned.toLowerCase() === 'nil' ||
-    cleaned === '-'
+    lowerCleaned === 'n/a' ||
+    lowerCleaned === 'none' ||
+    lowerCleaned === 'nil' ||
+    lowerCleaned === '-' ||
+    lowerCleaned === 'not established' ||
+    lowerCleaned === 'not specified' ||
+    lowerCleaned === 'not provided' ||
+    lowerCleaned === 'unspecified' ||
+    lowerCleaned === 'unknown' ||
+    lowerCleaned === 'pending'
   ) {
     return {
-      rawText: 'Not provided in report',
+      rawText: cleaned || 'Not provided in report',
       min: null,
       max: null,
       isSpecified: false
@@ -126,7 +133,6 @@ export function evaluateReferenceRange(
   // If the value is qualitative (e.g. "Negative", "Normal", "Trace")
   if (isNaN(numVal)) {
     const strVal = String(observedValue).toLowerCase().trim();
-    const strRange = range.rawText.toLowerCase().trim();
 
     if (
       strVal.includes('negative') || 
@@ -163,9 +169,17 @@ export function evaluateReferenceRange(
     };
   }
 
+  // Adapt critical threshold scale if report is in thousands (e.g., K/uL or x10³/µL where range < 100 but threshold >= 1000)
+  let effectiveCritLow = criticalLow;
+  let effectiveCritHigh = criticalHigh;
+  if (range.max !== null && range.max !== undefined && range.max < 100 && numVal < 500) {
+    if (effectiveCritLow !== undefined && effectiveCritLow >= 1000) effectiveCritLow /= 1000;
+    if (effectiveCritHigh !== undefined && effectiveCritHigh >= 1000) effectiveCritHigh /= 1000;
+  }
+
   // Check for Acute Critical / Panic Alarm thresholds
-  const isCriticalLow = criticalLow !== undefined && numVal <= criticalLow;
-  const isCriticalHigh = criticalHigh !== undefined && numVal >= criticalHigh;
+  const isCriticalLow = effectiveCritLow !== undefined && numVal <= effectiveCritLow;
+  const isCriticalHigh = effectiveCritHigh !== undefined && numVal >= effectiveCritHigh;
 
   if (isCriticalLow) {
     return {

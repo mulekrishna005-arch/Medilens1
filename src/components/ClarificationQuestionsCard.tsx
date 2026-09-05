@@ -104,6 +104,7 @@ export function ClarificationQuestionsCard({
                     type="text"
                     className="form-input"
                     placeholder="Provide clarification details (e.g. Yes, fasted for 10 hours)..."
+                    aria-label={`Provide clarification details for question: ${q.question}`}
                     style={{ fontSize: '0.8rem', padding: '0.4rem 0.65rem' }}
                     value={currentAnswer}
                     onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })}
@@ -120,8 +121,9 @@ export function ClarificationQuestionsCard({
                     style={{ padding: '0.4rem 0.85rem', fontSize: '0.78rem' }}
                     disabled={!currentAnswer.trim()}
                     onClick={() => onAnswerQuestion(q.id, currentAnswer.trim())}
+                    aria-label={`Save clarification answer for question ${idx + 1}`}
                   >
-                    <MessageSquare size={13} /> Save
+                    <MessageSquare size={13} aria-hidden="true" /> Save
                   </button>
                 </div>
               )}

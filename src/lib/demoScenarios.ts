@@ -1,4 +1,4 @@
-import { DemoScenario } from '@/types';
+import type { DemoScenario } from '@/types';
 
 export const DEMO_SCENARIOS: DemoScenario[] = [
   {
