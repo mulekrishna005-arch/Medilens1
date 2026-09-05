@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --import ./test/register-loader.mjs --test test/**/*.test.mjs"
+    "test": "node --experimental-strip-types --import ./test/register-loader.mjs --test test/**/*.test.mjs",
+    "test:coverage": "node --experimental-strip-types --import ./test/register-loader.mjs --test --experimental-test-coverage test/**/*.test.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.41.0",

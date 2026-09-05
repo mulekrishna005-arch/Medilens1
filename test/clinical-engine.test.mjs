@@ -381,5 +381,194 @@ describe('MedLens Clinical Intelligence Engine', () => {
       assert.equal(glucoseParam.status, 'HIGH');
       assert.equal(glucoseParam.observedValue, 168);
     });
+
+    it('executes all preloaded clinical demo scenarios with full validation', async () => {
+      const { DEMO_SCENARIOS } = await import('../src/lib/demoScenarios.ts');
+      assert.equal(DEMO_SCENARIOS.length, 4);
+
+      for (const scenario of DEMO_SCENARIOS) {
+        const result = runMedLensPipeline({
+          patient: scenario.intake,
+          currentReportText: scenario.currentReportText,
+          currentReportDate: scenario.currentReportDate,
+          previousReportText: scenario.previousReportText,
+          previousReportDate: scenario.previousReportDate
+        });
+
+        assert.ok(result.patient.name, `Patient name missing in scenario ${scenario.id}`);
+        assert.ok(result.currentParameters.length > 0, `No parameters extracted in scenario ${scenario.id}`);
+        assert.ok(result.summary.disclaimer.includes('NOT a medical diagnosis'));
+        assert.ok(result.summary.keyFindings.length > 0);
+        assert.ok(result.auditTrail.length > 0);
+      }
+    });
+  });
+
+  describe('8. Edge Cases & Qualitative Laboratory Evaluations', () => {
+    it('evaluates qualitative results correctly (Negative, Positive, Qualitative)', () => {
+      const unspecRange = parseReferenceRange('Negative');
+      
+      const negResult = evaluateReferenceRange('Negative', unspecRange);
+      assert.equal(negResult.status, 'NORMAL');
+      assert.equal(negResult.isCritical, false);
+
+      const nonReactive = evaluateReferenceRange('Non-Reactive', unspecRange);
+      assert.equal(nonReactive.status, 'NORMAL');
+
+      const posResult = evaluateReferenceRange('Positive', unspecRange);
+      assert.equal(posResult.status, 'HIGH');
+
+      const traceResult = evaluateReferenceRange('Trace / Equivocal', unspecRange);
+      assert.equal(traceResult.status, 'UNSPECIFIED');
+    });
+
+    it('evaluates single upper-bound and single lower-bound targets', () => {
+      const upperRange = parseReferenceRange('< 200');
+      const normalUpper = evaluateReferenceRange(150, upperRange);
+      assert.equal(normalUpper.status, 'NORMAL');
+
+      const highUpper = evaluateReferenceRange(240, upperRange);
+      assert.equal(highUpper.status, 'HIGH');
+
+      // Direct upper-bound only (hasMax && !hasMin)
+      const maxOnlyRange = { rawText: '<= 100', min: null, max: 100, isSpecified: true };
+      assert.equal(evaluateReferenceRange(120, maxOnlyRange).status, 'HIGH');
+      assert.equal(evaluateReferenceRange(80, maxOnlyRange).status, 'NORMAL');
+
+      const lowerRange = parseReferenceRange('>= 60');
+      const normalLower = evaluateReferenceRange(85, lowerRange);
+      assert.equal(normalLower.status, 'NORMAL');
+
+      const lowLower = evaluateReferenceRange(42, lowerRange);
+      assert.equal(lowLower.status, 'LOW');
+    });
+
+    it('filters out clinical metadata headers and deduplicates repeated lab tests', () => {
+      const reportWithHeadersAndDups = `
+        Department of Pathology & Laboratory Medicine
+        Referred by Dr. Robert Vance
+        Collected on 2026-08-10
+        Page 1 of 2
+        Hemoglobin   13.2   g/dL   12.0 - 16.0
+        Hemoglobin   13.2   g/dL   12.0 - 16.0
+      `;
+      const params = extractParametersFromText(reportWithHeadersAndDups);
+      assert.equal(params.length, 1);
+      assert.equal(params[0].canonicalName, 'Hemoglobin');
+    });
+
+    it('evaluates qualitative longitudinal comparisons and stable trends', () => {
+      const prevNumeric = [{
+        id: 'p1', name: 'Potassium', canonicalName: 'Potassium', category: 'Electrolytes',
+        observedValue: 4.2, unit: 'mEq/L', referenceRange: { rawText: '3.5 - 5.0', min: 3.5, max: 5.0, isSpecified: true },
+        status: 'NORMAL', confidence: 'HIGH', sourceDocument: 'PREV'
+      }];
+      const currNumeric = [{
+        id: 'c1', name: 'Potassium', canonicalName: 'Potassium', category: 'Electrolytes',
+        observedValue: 4.22, unit: 'mEq/L', referenceRange: { rawText: '3.5 - 5.0', min: 3.5, max: 5.0, isSpecified: true },
+        status: 'NORMAL', confidence: 'HIGH', sourceDocument: 'CURR'
+      }];
+      const numComp = compareReports(currNumeric, prevNumeric);
+      assert.equal(numComp[0].trend, 'STABLE');
+
+      // Qualitative stable
+      const prevQual = [{
+        id: 'q1', name: 'Hepatitis B Surface Antigen', canonicalName: 'Hepatitis B Surface Antigen', category: 'Serology',
+        observedValue: 'Non-Reactive', unit: '', referenceRange: { rawText: 'Negative', isSpecified: false },
+        status: 'NORMAL', confidence: 'HIGH', sourceDocument: 'PREV'
+      }];
+      const currQual = [{
+        id: 'q2', name: 'Hepatitis B Surface Antigen', canonicalName: 'Hepatitis B Surface Antigen', category: 'Serology',
+        observedValue: 'Non-Reactive', unit: '', referenceRange: { rawText: 'Negative', isSpecified: false },
+        status: 'NORMAL', confidence: 'HIGH', sourceDocument: 'CURR'
+      }];
+      const qualComp = compareReports(currQual, prevQual);
+      assert.equal(qualComp[0].trend, 'STABLE');
+      assert.match(qualComp[0].clinicalObservation, /Unchanged qualitative result/);
+
+      // Qualitative shifted
+      currQual[0].observedValue = 'Reactive';
+      const qualShift = compareReports(currQual, prevQual);
+      assert.equal(qualShift[0].trend, 'NOT_APPLICABLE');
+      assert.match(qualShift[0].clinicalObservation, /Shifted from/);
+    });
+
+    it('detects previous allergy note conflicts and acute platelet drops', () => {
+      const patient = {
+        name: 'Patient X',
+        age: 60,
+        sex: 'male',
+        symptoms: [],
+        existingConditions: [],
+        allergies: [], // Claims no allergies
+        currentMedications: []
+      };
+
+      const alerts = detectConflicts(patient, [], [], 'Patient had severe anaphylactic reaction to penicillin in 2022');
+      const allergyAlert = alerts.find(a => a.id.startsWith('conflict-allergy-penicillin'));
+      assert.ok(allergyAlert, 'Should detect penicillin allergy documentation discrepancy');
+
+      // Acute platelet drop
+      const prevPlt = [{
+        id: 'p1', name: 'Platelets', canonicalName: 'Platelet Count', category: 'Hematology',
+        observedValue: 300, unit: 'K/uL', referenceRange: { rawText: '150 - 450', min: 150, max: 450, isSpecified: true },
+        status: 'NORMAL', confidence: 'HIGH', sourceDocument: 'PREV'
+      }];
+      const currPlt = [{
+        id: 'c1', name: 'Platelets', canonicalName: 'Platelet Count', category: 'Hematology',
+        observedValue: 80, unit: 'K/uL', referenceRange: { rawText: '150 - 450', min: 150, max: 450, isSpecified: true },
+        status: 'LOW', confidence: 'HIGH', sourceDocument: 'CURR'
+      }];
+      const pltAlerts = detectConflicts(patient, currPlt, prevPlt);
+      const acutePltAlert = pltAlerts.find(a => a.id === 'conflict-acute-platelet-drop');
+      assert.ok(acutePltAlert, 'Should flag acute >60% drop in platelets');
+    });
+
+    it('covers clarification questions and summary generation edge conditions', () => {
+      // Patient with no symptoms and thyroid test
+      const patient = {
+        name: 'Thyroid Patient',
+        age: 38,
+        sex: 'female',
+        symptoms: [],
+        existingConditions: [],
+        allergies: [],
+        currentMedications: [
+          { name: 'Levothyroxine', dosage: '50mcg', frequency: 'Daily before breakfast' }
+        ]
+      };
+      const tshParam = [{
+        id: 't1', name: 'TSH', canonicalName: 'Thyroid Stimulating Hormone (TSH)', category: 'Endocrine',
+        observedValue: 2.1, unit: 'uIU/mL', referenceRange: { rawText: '0.4 - 4.5', min: 0.4, max: 4.5, isSpecified: true },
+        status: 'NORMAL', confidence: 'HIGH', sourceDocument: 'CURR'
+      }];
+
+      const questions = generateClarificationQuestions(patient, tshParam);
+      const symptomReason = questions.find(q => q.id === 'q-symptom-reason');
+      assert.ok(symptomReason, 'Should prompt for reason for test when symptoms are empty');
+      const thyroidTiming = questions.find(q => q.id === 'q-thyroid-timing');
+      assert.ok(thyroidTiming, 'Should prompt for thyroid medication timing');
+      const otcQuestion = questions.find(q => q.id === 'q-otc-supplements');
+      assert.ok(otcQuestion, 'Should prompt for OTC supplements when medications are fully specified');
+
+      // Summary with all normal parameters and stable longitudinal comparison
+      const normalSummary = generateClinicalSummary(patient, tshParam, [], [], [{
+        parameterId: 't1', canonicalName: 'Thyroid Stimulating Hormone (TSH)', unit: 'uIU/mL',
+        previousValue: 2.1, previousDate: '2026-01-01', previousStatus: 'NORMAL',
+        currentValue: 2.1, currentDate: '2026-08-01', currentStatus: 'NORMAL',
+        numericDelta: 0, percentageChange: 0, trend: 'STABLE', clinicalObservation: 'Stable'
+      }]);
+      assert.ok(normalSummary.keyFindings.some(k => k.includes('All extracted laboratory parameters fall within')));
+      assert.ok(normalSummary.keyFindings.some(k => k.includes('remain generally stable')));
+
+      // Summary with critical parameter
+      const criticalParam = [{
+        id: 'k1', name: 'Potassium', canonicalName: 'Potassium', category: 'Electrolytes',
+        observedValue: 6.8, unit: 'mEq/L', referenceRange: { rawText: '3.5 - 5.0', min: 3.5, max: 5.0, isSpecified: true },
+        status: 'CRITICAL', confidence: 'HIGH', sourceDocument: 'CURR'
+      }];
+      const criticalSummary = generateClinicalSummary(patient, criticalParam, [], [], []);
+      assert.ok(criticalSummary.outOfRangeHighlights.some(h => h.plainExplanation.includes('CRITICAL ALERT')));
+    });
   });
 });
