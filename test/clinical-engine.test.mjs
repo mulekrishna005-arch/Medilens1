@@ -797,4 +797,78 @@ describe('MedLens Clinical Intelligence Engine', () => {
       assert.ok(summaryWithNotes.outOfRangeHighlights[2].plainExplanation.includes('Microcytic morphology observed'));
     });
   });
+
+  describe('10. Clinical Safety Invariants & Boundary Validations', () => {
+    it('strictly guarantees no reference range invention across diverse unformatted reports', () => {
+      const rawText = `
+        Random Lab Test Alpha: 42 mg/dL
+        Random Lab Test Beta: 99 U/L
+      `;
+      const extracted = extractParametersFromText(rawText);
+      assert.equal(extracted.length, 2);
+      for (const param of extracted) {
+        assert.equal(param.referenceRange.isSpecified, false);
+        assert.equal(param.status, 'UNSPECIFIED');
+        assert.equal(param.referenceRange.rawText, 'Not provided in report');
+      }
+    });
+
+    it('reliably detects drug allergy contradictions case-insensitively', () => {
+      const conflicts = detectConflicts(
+        {
+          name: 'Case Test',
+          age: 40,
+          sex: 'female',
+          symptoms: [],
+          existingConditions: [],
+          allergies: ['PENICILLIN'],
+          currentMedications: [{ name: 'amoxicillin', dosage: '500mg', frequency: 'TID' }]
+        },
+        []
+      );
+      const allergyAlert = conflicts.find(c => c.id.startsWith('conflict-med-allergy'));
+      assert.ok(allergyAlert);
+      assert.equal(allergyAlert.severity, 'HIGH');
+    });
+
+    it('ensures longitudinal comparison never produces NaN or division-by-zero crashes', () => {
+      const compZero = compareReports(
+        [{
+          id: 'z1', name: 'Zero Baseline', canonicalName: 'Zero Baseline', category: 'Other',
+          observedValue: 0, unit: 'units', referenceRange: { rawText: '0 - 10', min: 0, max: 10, isSpecified: true },
+          status: 'NORMAL', confidence: 'HIGH', sourceDocument: 'PREV'
+        }],
+        [{
+          id: 'z2', name: 'Zero Baseline', canonicalName: 'Zero Baseline', category: 'Other',
+          observedValue: 0, unit: 'units', referenceRange: { rawText: '0 - 10', min: 0, max: 10, isSpecified: true },
+          status: 'NORMAL', confidence: 'HIGH', sourceDocument: 'CURR'
+        }]
+      );
+      assert.equal(compZero.length, 1);
+      assert.equal(compZero[0].trend, 'STABLE');
+      assert.equal(compZero[0].percentageChange, null);
+      assert.equal(compZero[0].numericDelta, 0);
+    });
+
+    it('verifies audit trail integrity and metadata completeness in end-to-end pipeline', () => {
+      const result = runMedLensPipeline({
+        patient: {
+          name: 'Integrity Test Patient',
+          age: 55,
+          sex: 'male',
+          symptoms: ['Chest tightness'],
+          existingConditions: ['Hypertension'],
+          allergies: [],
+          currentMedications: [{ name: 'Amlodipine', dosage: '5mg', frequency: 'daily' }]
+        },
+        currentReportText: 'Troponin-I | 0.02 | ng/mL | < 0.04\nPotassium | 4.2 | mmol/L | 3.5 - 5.0'
+      });
+      assert.ok(result.id.startsWith('rec-'));
+      assert.equal(result.isVerified, false);
+      assert.ok(result.auditTrail.length > 0);
+      assert.equal(result.auditTrail[0].action, 'EXTRACT');
+      assert.ok(new Date(result.auditTrail[0].timestamp).getTime() > 0);
+      assert.equal(result.auditTrail[0].author, 'SYSTEM_AI');
+    });
+  });
 });
