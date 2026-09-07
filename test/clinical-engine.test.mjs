@@ -571,4 +571,230 @@ describe('MedLens Clinical Intelligence Engine', () => {
       assert.ok(criticalSummary.outOfRangeHighlights.some(h => h.plainExplanation.includes('CRITICAL ALERT')));
     });
   });
+
+  describe('9. Comprehensive Branch Coverage for 100% Branch Metrics', () => {
+    it('covers all optional and fallback branches in clarificationGenerator and conflictDetector', () => {
+      // clarificationGenerator with undefined/null medications
+      const qNullMeds = generateClarificationQuestions({
+        name: 'No Meds Patient',
+        age: 30,
+        sex: 'male',
+        symptoms: ['Headache'],
+        existingConditions: [],
+        allergies: [],
+        currentMedications: undefined
+      });
+      assert.ok(qNullMeds.length > 0);
+
+      // conflictDetector with undefined arrays
+      const cNullArrays = detectConflicts(
+        {
+          name: 'Null Arrays Patient',
+          age: 40,
+          sex: 'female',
+          symptoms: [],
+          existingConditions: undefined,
+          allergies: undefined,
+          currentMedications: undefined
+        },
+        [],
+        undefined,
+        ''
+      );
+      assert.deepEqual(cNullArrays, []);
+
+      // conflictDetector: patient has non-empty allergies ('None' or 'NKDA') and previous record has allergen
+      const cAllergyWithDetail = detectConflicts(
+        {
+          name: 'NKDA Patient',
+          age: 50,
+          sex: 'male',
+          symptoms: [],
+          existingConditions: [],
+          allergies: ['No Known Drug Allergies (NKDA)'],
+          currentMedications: []
+        },
+        [],
+        [],
+        'History of severe rash to penicillin in 2018'
+      );
+      assert.ok(cAllergyWithDetail.length > 0);
+      assert.equal(cAllergyWithDetail[0].sourceA.detail, 'No Known Drug Allergies (NKDA)');
+
+      // conflictDetector: Penicillin med without dosage and without frequency
+      const cPenicillinNoDose = detectConflicts(
+        {
+          name: 'Penicillin Patient',
+          age: 45,
+          sex: 'male',
+          symptoms: [],
+          existingConditions: [],
+          allergies: ['Penicillin'],
+          currentMedications: [{ name: 'Amoxicillin', dosage: '', frequency: '' }]
+        },
+        []
+      );
+      assert.ok(cPenicillinNoDose.length > 0);
+      assert.equal(cPenicillinNoDose[0].sourceA.detail.trim(), 'Amoxicillin');
+
+      // conflictDetector: Metformin with creatinine >= 1.5 and NO egfr
+      const cMetforminCreatOnly = detectConflicts(
+        {
+          name: 'Metformin Patient',
+          age: 70,
+          sex: 'female',
+          symptoms: [],
+          existingConditions: ['Type 2 Diabetes'],
+          allergies: [],
+          currentMedications: [{ name: 'Metformin', dosage: '1000mg', frequency: 'Daily' }]
+        },
+        [{
+          id: 'cr1', name: 'Creatinine', canonicalName: 'Serum Creatinine', category: 'Renal Function',
+          observedValue: 2.1, unit: 'mg/dL', referenceRange: { rawText: '0.6 - 1.2', min: 0.6, max: 1.2, isSpecified: true },
+          status: 'HIGH', confidence: 'HIGH', sourceDocument: 'CURR'
+        }]
+      );
+      assert.ok(cMetforminCreatOnly.some(c => c.id === 'conflict-metformin-renal'));
+
+      // conflictDetector: Metformin with BOTH elevated creatinine and reduced egfr
+      const cMetforminBoth = detectConflicts(
+        {
+          name: 'Metformin Both Patient',
+          age: 72,
+          sex: 'female',
+          symptoms: [],
+          existingConditions: ['Type 2 Diabetes'],
+          allergies: [],
+          currentMedications: [{ name: 'Metformin', dosage: '1000mg', frequency: 'Daily' }]
+        },
+        [
+          {
+            id: 'cr2', name: 'Creatinine', canonicalName: 'Serum Creatinine', category: 'Renal Function',
+            observedValue: 2.3, unit: 'mg/dL', referenceRange: { rawText: '0.6 - 1.2', min: 0.6, max: 1.2, isSpecified: true },
+            status: 'HIGH', confidence: 'HIGH', sourceDocument: 'CURR'
+          },
+          {
+            id: 'egfr2', name: 'eGFR', canonicalName: 'Estimated GFR (eGFR)', category: 'Renal Function',
+            observedValue: 28, unit: 'mL/min', referenceRange: { rawText: '>= 60', min: 60, max: null, isSpecified: true },
+            status: 'LOW', confidence: 'HIGH', sourceDocument: 'CURR'
+          }
+        ]
+      );
+      assert.ok(cMetforminBoth.some(c => c.id === 'conflict-metformin-renal'));
+
+      // conflictDetector: Antihypertensive with NO dosage and empty existingConditions
+      const cBpNoDoseNoConditions = detectConflicts(
+        {
+          name: 'BP Patient',
+          age: 55,
+          sex: 'male',
+          symptoms: [],
+          existingConditions: [],
+          allergies: [],
+          currentMedications: [{ name: 'Amlodipine', dosage: '', frequency: '' }]
+        },
+        []
+      );
+      const bpAlert = cBpNoDoseNoConditions.find(c => c.id === 'conflict-bp-med-condition');
+      assert.ok(bpAlert);
+      assert.equal(bpAlert.sourceA.detail.trim(), 'Amlodipine');
+      assert.equal(bpAlert.sourceB.detail, 'Hypertension omitted');
+    });
+
+    it('covers zero-baseline trajectory, single report pipeline, and missing range parser branches', () => {
+      // longitudinalComparator with prevNum === 0
+      const prevZero = [{
+        id: 'z1', name: 'Troponin I', canonicalName: 'Troponin I', category: 'Cardiac',
+        observedValue: 0, unit: 'ng/mL', referenceRange: { rawText: '< 0.04', min: 0, max: 0.04, isSpecified: true },
+        status: 'NORMAL', confidence: 'HIGH', sourceDocument: 'PREV'
+      }];
+      const currNonZero = [{
+        id: 'z2', name: 'Troponin I', canonicalName: 'Troponin I', category: 'Cardiac',
+        observedValue: 0.05, unit: 'ng/mL', referenceRange: { rawText: '< 0.04', min: 0, max: 0.04, isSpecified: true },
+        status: 'HIGH', confidence: 'HIGH', sourceDocument: 'CURR'
+      }];
+      const zeroComp = compareReports(currNonZero, prevZero);
+      assert.equal(zeroComp[0].trend, 'STABLE');
+      assert.equal(zeroComp[0].percentageChange, null);
+
+      // pipeline without previous report or dates
+      const singleReportResult = runMedLensPipeline({
+        patient: {
+          name: 'Single Report Patient',
+          age: 28,
+          sex: 'female',
+          symptoms: [],
+          existingConditions: [],
+          allergies: [],
+          currentMedications: []
+        },
+        currentReportText: 'Hemoglobin 13.5 g/dL 12.0 - 16.0'
+      });
+      assert.equal(singleReportResult.currentParameters.length, 1);
+      assert.equal(singleReportResult.previousParameters.length, 0);
+      assert.equal(singleReportResult.longitudinalComparisons.length, 0);
+      assert.ok(singleReportResult.currentReportDate);
+
+      // referenceRangeEvaluator: parseReferenceRange with empty/whitespace or non-provided text
+      const emptyParsed = parseReferenceRange('   ');
+      assert.equal(emptyParsed.isSpecified, false);
+      assert.equal(emptyParsed.rawText, 'Not provided in report');
+
+      // reportParser: parameter line with no reference range at all, header with "test", short name, and long name
+      const noRangeReport = `
+        Blood Test Header
+        Laboratory: test
+        A 50 mg/dL
+        Very Extremely Long Test Name With Way Too Many Words In It 100 mg/dL
+        Hemoglobin 14.2 g/dL
+      `;
+      const noRangeParams = extractParametersFromText(noRangeReport);
+      assert.equal(noRangeParams.length, 1);
+      assert.equal(noRangeParams[0].referenceRange.rawText, 'Not provided in report');
+
+      // summaryGenerator: HIGH and LOW status both with and without notes, and medications with mixed dosage/frequency
+      const summaryWithNotes = generateClinicalSummary(
+        {
+          name: 'Summary Patient',
+          age: 48,
+          sex: 'male',
+          symptoms: ['Fatigue'],
+          existingConditions: [],
+          allergies: [],
+          currentMedications: [
+            { name: 'Metformin', dosage: '500mg', frequency: 'Twice daily' },
+            { name: 'Aspirin', dosage: '', frequency: '' },
+            { name: 'Vitamin D', dosage: '1000 IU', frequency: '' }
+          ]
+        },
+        [
+          {
+            id: 'g1', name: 'Fasting Blood Sugar', canonicalName: 'Fasting Blood Glucose', category: 'Metabolic',
+            observedValue: 155, unit: 'mg/dL', referenceRange: { rawText: '70 - 99', min: 70, max: 99, isSpecified: true },
+            status: 'HIGH', confidence: 'HIGH', sourceDocument: 'CURR', notes: 'Verified on secondary assay'
+          },
+          {
+            id: 'g2', name: 'HbA1c', canonicalName: 'Glycated Hemoglobin (HbA1c)', category: 'Metabolic',
+            observedValue: 8.5, unit: '%', referenceRange: { rawText: '< 5.7', min: 0, max: 5.7, isSpecified: true },
+            status: 'HIGH', confidence: 'HIGH', sourceDocument: 'CURR', notes: ''
+          },
+          {
+            id: 'h1', name: 'Hemoglobin', canonicalName: 'Hemoglobin', category: 'Hematology',
+            observedValue: 9.0, unit: 'g/dL', referenceRange: { rawText: '12.0 - 16.0', min: 12, max: 16, isSpecified: true },
+            status: 'LOW', confidence: 'HIGH', sourceDocument: 'CURR', notes: 'Microcytic morphology observed'
+          },
+          {
+            id: 'h2', name: 'Hematocrit', canonicalName: 'Hematocrit', category: 'Hematology',
+            observedValue: 28.0, unit: '%', referenceRange: { rawText: '36.0 - 46.0', min: 36, max: 46, isSpecified: true },
+            status: 'LOW', confidence: 'HIGH', sourceDocument: 'CURR', notes: ''
+          }
+        ],
+        [],
+        [],
+        []
+      );
+      assert.ok(summaryWithNotes.outOfRangeHighlights[0].plainExplanation.includes('Verified on secondary assay'));
+      assert.ok(summaryWithNotes.outOfRangeHighlights[2].plainExplanation.includes('Microcytic morphology observed'));
+    });
+  });
 });

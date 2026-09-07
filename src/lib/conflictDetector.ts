@@ -21,6 +21,7 @@ export function detectConflicts(
 
   // 1. ALLERGY DISCREPANCY: Patient reports "No Allergies" or empty, but previous records or notes document allergies
   const claimsNoAllergies = 
+    !patient.allergies ||
     patient.allergies.length === 0 || 
     allergiesStr.includes('none') || 
     allergiesStr.includes('nkda') || 
@@ -36,7 +37,7 @@ export function detectConflicts(
         description: `Patient intake indicates no known drug allergies, but previous medical notes reference an allergy or adverse reaction to "${allergen}".`,
         sourceA: {
           source: 'Patient Intake Form',
-          detail: patient.allergies.length ? patient.allergies.join(', ') : 'No known drug allergies reported'
+          detail: patient.allergies && patient.allergies.length ? patient.allergies.join(', ') : 'No known drug allergies reported'
         },
         sourceB: {
           source: 'Previous Medical History / Report',

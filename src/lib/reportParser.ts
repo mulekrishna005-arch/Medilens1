@@ -76,8 +76,8 @@ export function extractParametersFromText(
 
     if (rawName && rawValue) {
       // Validate that rawName looks like a clinical test
-      if (!rawName || rawName.length < 2 || rawName.split(' ').length > 6) continue;
-      if (!rawValue || rawValue.toLowerCase() === 'test') continue;
+      if (rawName.length < 2 || rawName.split(' ').length > 6) continue;
+      if (rawValue.toLowerCase() === 'test') continue;
 
       // Filter out phone numbers, dates, IDs
       if (rawName.toLowerCase().includes('phone') || rawName.toLowerCase().includes('date')) continue;
