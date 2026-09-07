@@ -31,7 +31,6 @@ export function ReportUploader({
   const [activeTab, setActiveTab] = React.useState<'current' | 'previous'>('current');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  // File upload reader for plain text or simulated PDF/OCR ingestion
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, target: 'current' | 'previous') => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -40,15 +39,18 @@ export function ReportUploader({
     reader.onload = (event) => {
       const content = event.target?.result as string;
       if (content) {
-        if (target === 'current') {
-          onCurrentReportChange(content);
-        } else {
-          onPreviousReportChange(content);
-        }
+        if (target === 'current') onCurrentReportChange(content);
+        else onPreviousReportChange(content);
       }
     };
     reader.readAsText(file);
   };
+
+  const isCurrent = activeTab === 'current';
+  const text = isCurrent ? currentReportText : previousReportText;
+  const onTextChange = isCurrent ? onCurrentReportChange : onPreviousReportChange;
+  const date = isCurrent ? currentReportDate : previousReportDate;
+  const onDateChange = isCurrent ? onCurrentReportDateChange : onPreviousReportDateChange;
 
   return (
     <section aria-labelledby="report-uploader-heading" className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -68,11 +70,11 @@ export function ReportUploader({
           <button 
             id="tab-current-report"
             role="tab"
-            aria-selected={activeTab === 'current'}
+            aria-selected={isCurrent}
             aria-controls="panel-current-report"
-            tabIndex={activeTab === 'current' ? 0 : -1}
+            tabIndex={isCurrent ? 0 : -1}
             type="button" 
-            className={`btn ${activeTab === 'current' ? 'btn-primary' : 'btn-outline'}`}
+            className={`btn ${isCurrent ? 'btn-primary' : 'btn-outline'}`}
             style={{ padding: '0.35rem 0.85rem', fontSize: '0.78rem' }}
             onClick={() => setActiveTab('current')}
             onKeyDown={(e) => {
@@ -88,11 +90,11 @@ export function ReportUploader({
           <button 
             id="tab-previous-report"
             role="tab"
-            aria-selected={activeTab === 'previous'}
+            aria-selected={!isCurrent}
             aria-controls="panel-previous-report"
-            tabIndex={activeTab === 'previous' ? 0 : -1}
+            tabIndex={!isCurrent ? 0 : -1}
             type="button" 
-            className={`btn ${activeTab === 'previous' ? 'btn-primary' : 'btn-outline'}`}
+            className={`btn ${!isCurrent ? 'btn-primary' : 'btn-outline'}`}
             style={{ padding: '0.35rem 0.85rem', fontSize: '0.78rem' }}
             onClick={() => setActiveTab('previous')}
             onKeyDown={(e) => {
@@ -108,155 +110,94 @@ export function ReportUploader({
         </div>
       </div>
 
-      {/* Tab 1: Current Medical Report */}
-      {activeTab === 'current' && (
-        <div 
-          id="panel-current-report"
-          role="tabpanel"
-          aria-labelledby="tab-current-report"
-          style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span className="badge-prov prov-report">Source: Current Laboratory Document</span>
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                {currentReportText.length} characters
-              </span>
-            </div>
+      {/* Unified Tab Panel Content */}
+      <div 
+        id={isCurrent ? 'panel-current-report' : 'panel-previous-report'}
+        role="tabpanel"
+        aria-labelledby={isCurrent ? 'tab-current-report' : 'tab-previous-report'}
+        style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span className={`badge-prov ${isCurrent ? 'prov-report' : 'prov-previous'}`}>
+              {isCurrent ? 'Source: Current Laboratory Document' : 'Source: Prior Report (Longitudinal History)'}
+            </span>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+              {text.length} characters
+            </span>
+          </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <Calendar size={14} aria-hidden="true" style={{ color: 'var(--text-muted)' }} />
-                <label htmlFor="current-report-date-input" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Report Date:</label>
-                <input 
-                  id="current-report-date-input"
-                  type="date" 
-                  className="form-input" 
-                  style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', width: 'auto' }}
-                  value={currentReportDate}
-                  onChange={(e) => onCurrentReportDateChange(e.target.value)}
-                />
-              </div>
-
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              {isCurrent ? <Calendar size={14} aria-hidden="true" style={{ color: 'var(--text-muted)' }} /> : <Clock size={14} aria-hidden="true" style={{ color: 'var(--text-muted)' }} />}
+              <label htmlFor={isCurrent ? 'current-report-date-input' : 'previous-report-date-input'} style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                {isCurrent ? 'Report Date:' : 'Prior Date:'}
+              </label>
               <input 
-                type="file" 
-                ref={fileInputRef} 
-                accept=".txt,.csv,.log,.json" 
-                style={{ display: 'none' }}
-                aria-label="Upload medical report file"
-                onChange={(e) => handleFileUpload(e, 'current')}
+                id={isCurrent ? 'current-report-date-input' : 'previous-report-date-input'}
+                type="date" 
+                className="form-input" 
+                style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', width: 'auto' }}
+                value={date}
+                onChange={(e) => onDateChange(e.target.value)}
               />
+            </div>
+
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              accept=".txt,.csv,.log,.json" 
+              style={{ display: 'none' }}
+              aria-label="Upload medical report file"
+              onChange={(e) => handleFileUpload(e, activeTab)}
+            />
+            <button 
+              type="button" 
+              className="btn btn-outline" 
+              style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
+              onClick={() => fileInputRef.current?.click()}
+              aria-label={isCurrent ? 'Upload report file' : 'Upload previous report file'}
+            >
+              <FileUp size={14} aria-hidden="true" /> Upload File
+            </button>
+            {text && (
               <button 
                 type="button" 
                 className="btn btn-outline" 
-                style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
-                onClick={() => fileInputRef.current?.click()}
-                aria-label="Upload report file"
+                style={{ padding: '0.35rem 0.5rem', fontSize: '0.75rem' }}
+                onClick={() => onTextChange('')}
+                title={isCurrent ? 'Clear report text' : 'Clear previous report'}
+                aria-label={isCurrent ? 'Clear current report text' : 'Clear previous report text'}
               >
-                <FileUp size={14} aria-hidden="true" /> Upload File
+                <RotateCcw size={13} aria-hidden="true" />
               </button>
-              {currentReportText && (
-                <button 
-                  type="button" 
-                  className="btn btn-outline" 
-                  style={{ padding: '0.35rem 0.5rem', fontSize: '0.75rem' }}
-                  onClick={() => onCurrentReportChange('')}
-                  title="Clear report text"
-                  aria-label="Clear current report text"
-                >
-                  <RotateCcw size={13} aria-hidden="true" />
-                </button>
-              )}
-            </div>
+            )}
           </div>
-
-          <label htmlFor="current-report-textarea" className="sr-only">Current clinical or laboratory report text</label>
-          <textarea 
-            id="current-report-textarea"
-            className="form-textarea" 
-            placeholder="Paste current clinical or laboratory report text here (including parameter names, values, units, and reference ranges)..."
-            rows={7}
-            style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', lineHeight: '1.45' }}
-            value={currentReportText}
-            onChange={(e) => onCurrentReportChange(e.target.value)}
-          />
-
-          <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-            Tip: MedLens accurately parses tabular values, column gaps, units, and range boundaries. If a reference range is omitted in the source, MedLens preserves safety by leaving it unspecified.
-          </p>
         </div>
-      )}
 
-      {/* Tab 2: Previous Report (Optional) */}
-      {activeTab === 'previous' && (
-        <div 
-          id="panel-previous-report"
-          role="tabpanel"
-          aria-labelledby="tab-previous-report"
-          style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span className="badge-prov prov-previous">Source: Prior Report (Longitudinal History)</span>
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                {previousReportText.length} characters
-              </span>
-            </div>
+        <label htmlFor={isCurrent ? 'current-report-textarea' : 'previous-report-textarea'} className="sr-only">
+          {isCurrent ? 'Current clinical or laboratory report text' : 'Previous laboratory report text'}
+        </label>
+        <textarea 
+          id={isCurrent ? 'current-report-textarea' : 'previous-report-textarea'}
+          className="form-textarea" 
+          placeholder={isCurrent 
+            ? 'Paste current clinical or laboratory report text here (including parameter names, values, units, and reference ranges)...'
+            : 'Optionally paste a previous laboratory report here to generate automated longitudinal trend arrows (↑ / ↓), percentage shifts, and conflict analysis...'
+          }
+          rows={7}
+          style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', lineHeight: '1.45' }}
+          value={text}
+          onChange={(e) => onTextChange(e.target.value)}
+        />
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <Clock size={14} aria-hidden="true" style={{ color: 'var(--text-muted)' }} />
-                <label htmlFor="previous-report-date-input" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Prior Date:</label>
-                <input 
-                  id="previous-report-date-input"
-                  type="date" 
-                  className="form-input" 
-                  style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', width: 'auto' }}
-                  value={previousReportDate}
-                  onChange={(e) => onPreviousReportDateChange(e.target.value)}
-                />
-              </div>
-
-              <button 
-                type="button" 
-                className="btn btn-outline" 
-                style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
-                onClick={() => fileInputRef.current?.click()}
-                aria-label="Upload previous report file"
-              >
-                <FileUp size={14} aria-hidden="true" /> Upload File
-              </button>
-              {previousReportText && (
-                <button 
-                  type="button" 
-                  className="btn btn-outline" 
-                  style={{ padding: '0.35rem 0.5rem', fontSize: '0.75rem' }}
-                  onClick={() => onPreviousReportChange('')}
-                  title="Clear previous report"
-                  aria-label="Clear previous report text"
-                >
-                  <RotateCcw size={13} aria-hidden="true" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          <label htmlFor="previous-report-textarea" className="sr-only">Previous laboratory report text</label>
-          <textarea 
-            id="previous-report-textarea"
-            className="form-textarea" 
-            placeholder="Optionally paste a previous laboratory report here to generate automated longitudinal trend arrows (↑ / ↓), percentage shifts, and conflict analysis..."
-            rows={7}
-            style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', lineHeight: '1.45' }}
-            value={previousReportText}
-            onChange={(e) => onPreviousReportChange(e.target.value)}
-          />
-
-          <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-            Providing a previous report enables feature #10 (Longitudinal Comparison) and deep conflict cross-checks.
-          </p>
-        </div>
-      )}
+        <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+          {isCurrent
+            ? 'Tip: MedLens accurately parses tabular values, column gaps, units, and range boundaries. If a reference range is omitted in the source, MedLens preserves safety by leaving it unspecified.'
+            : 'Providing a previous report enables feature #10 (Longitudinal Comparison) and deep conflict cross-checks.'
+          }
+        </p>
+      </div>
 
       {/* Primary Pipeline Action Button */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingTop: '0.5rem', borderTop: '1px solid var(--border-subtle)' }}>

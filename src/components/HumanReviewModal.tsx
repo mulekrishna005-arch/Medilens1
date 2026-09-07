@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Edit3, CheckCircle, X, ShieldCheck } from 'lucide-react';
 import { LabParameter } from '@/types';
 import { parseReferenceRange, evaluateReferenceRange } from '@/lib/referenceRangeEvaluator';
+import { useModalFocusTrap } from './useModalFocusTrap';
 
 interface HumanReviewModalProps {
   parameter: LabParameter | null;
@@ -31,51 +32,7 @@ function HumanReviewModalContent({
   const [markVerified, setMarkVerified] = useState(true);
 
   const modalRef = React.useRef<HTMLDivElement>(null);
-
-  // Keyboard navigation: Escape to close and Tab focus trapping within modal
-  useEffect(() => {
-    const prevActiveElement = document.activeElement as HTMLElement | null;
-
-    // Focus the first interactive element inside modal upon mount
-    const focusable = modalRef.current?.querySelectorAll<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    );
-    if (focusable && focusable.length > 0) {
-      focusable[0].focus();
-    }
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      } else if (e.key === 'Tab') {
-        if (!modalRef.current) return;
-        const elements = modalRef.current.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        if (!elements.length) return;
-        const first = elements[0];
-        const last = elements[elements.length - 1];
-
-        if (e.shiftKey) {
-          if (document.activeElement === first) {
-            e.preventDefault();
-            last.focus();
-          }
-        } else {
-          if (document.activeElement === last) {
-            e.preventDefault();
-            first.focus();
-          }
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      prevActiveElement?.focus();
-    };
-  }, [onClose]);
+  useModalFocusTrap(modalRef, true, onClose);
 
   const handleSave = () => {
     const parsedRange = parseReferenceRange(rawRange);

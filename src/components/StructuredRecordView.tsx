@@ -122,43 +122,18 @@ export function StructuredRecordView({
 
       {/* KPI Cards Grid */}
       <div className="kpi-grid">
-        <div className="kpi-card">
-          <span className="kpi-title">Extracted Tests</span>
-          <span className="kpi-value">{totalParams}</span>
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-            Source: {record.currentReportDate || 'Current Report'}
-          </span>
-        </div>
-
-        <div className="kpi-card" style={{ borderColor: abnormalParams.length > 0 ? 'rgba(245, 158, 11, 0.4)' : undefined }}>
-          <span className="kpi-title">Out of Reference Range</span>
-          <span className="kpi-value" style={{ color: abnormalParams.length > 0 ? '#fbbf24' : '#34d399' }}>
-            {abnormalParams.length}
-          </span>
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-            Strictly source range bounded
-          </span>
-        </div>
-
-        <div className="kpi-card" style={{ borderColor: criticalParams.length > 0 ? 'rgba(239, 68, 68, 0.4)' : undefined }}>
-          <span className="kpi-title">Critical Panic Alarms</span>
-          <span className="kpi-value" style={{ color: criticalParams.length > 0 ? '#f87171' : '#94a3b8' }}>
-            {criticalParams.length}
-          </span>
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-            Requires immediate review
-          </span>
-        </div>
-
-        <div className="kpi-card">
-          <span className="kpi-title">Human Verification</span>
-          <span className="kpi-value" style={{ color: verifiedParams.length === totalParams && totalParams > 0 ? '#34d399' : '#38bdf8' }}>
-            {verifiedParams.length} / {totalParams}
-          </span>
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-            Fields signed off by clinician
-          </span>
-        </div>
+        {[
+          { title: 'Extracted Tests', value: totalParams, sub: `Source: ${record.currentReportDate || 'Current Report'}` },
+          { title: 'Out of Reference Range', value: abnormalParams.length, color: abnormalParams.length > 0 ? '#fbbf24' : '#34d399', border: abnormalParams.length > 0 ? 'rgba(245, 158, 11, 0.4)' : undefined, sub: 'Strictly source range bounded' },
+          { title: 'Critical Panic Alarms', value: criticalParams.length, color: criticalParams.length > 0 ? '#f87171' : '#94a3b8', border: criticalParams.length > 0 ? 'rgba(239, 68, 68, 0.4)' : undefined, sub: 'Requires immediate review' },
+          { title: 'Human Verification', value: `${verifiedParams.length} / ${totalParams}`, color: verifiedParams.length === totalParams && totalParams > 0 ? '#34d399' : '#38bdf8', sub: 'Fields signed off by clinician' },
+        ].map((kpi, idx) => (
+          <div key={idx} className="kpi-card" style={{ borderColor: kpi.border }}>
+            <span className="kpi-title">{kpi.title}</span>
+            <span className="kpi-value" style={{ color: kpi.color }}>{kpi.value}</span>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{kpi.sub}</span>
+          </div>
+        ))}
       </div>
 
       {/* Filter and Search Bar */}

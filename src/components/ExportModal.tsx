@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Printer, X } from 'lucide-react';
 import { MedicalRecordData } from '@/types';
+import { useModalFocusTrap } from './useModalFocusTrap';
 
 interface ExportModalProps {
   record: MedicalRecordData | null;
@@ -12,52 +13,7 @@ interface ExportModalProps {
 
 export function ExportModal({ record, isOpen, onClose }: ExportModalProps) {
   const modalRef = React.useRef<HTMLDivElement>(null);
-
-  // Focus trap, initial focus, and Escape key handler for accessible modal dismissal
-  useEffect(() => {
-    if (!isOpen) return;
-    const prevActiveElement = document.activeElement as HTMLElement | null;
-
-    // Focus the first interactive element inside modal upon mount
-    const focusables = modalRef.current?.querySelectorAll<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    );
-    if (focusables && focusables.length > 0) {
-      focusables[0].focus();
-    }
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      } else if (e.key === 'Tab') {
-        if (!modalRef.current) return;
-        const elements = modalRef.current.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        if (!elements.length) return;
-        const first = elements[0];
-        const last = elements[elements.length - 1];
-
-        if (e.shiftKey) {
-          if (document.activeElement === first) {
-            e.preventDefault();
-            last.focus();
-          }
-        } else {
-          if (document.activeElement === last) {
-            e.preventDefault();
-            first.focus();
-          }
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      prevActiveElement?.focus();
-    };
-  }, [isOpen, onClose]);
+  useModalFocusTrap(modalRef, isOpen, onClose);
 
   if (!isOpen || !record) return null;
 

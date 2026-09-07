@@ -9,62 +9,117 @@ interface IntakeFormProps {
   onChange: (updated: PatientIntake) => void;
 }
 
+interface TagInputProps {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  placeholder: string;
+  items: string[];
+  onAdd: (item: string) => void;
+  onRemove: (idx: number) => void;
+  addAriaLabel: string;
+  removeAriaLabelPrefix: string;
+  buttonText?: string;
+  subLabel?: string;
+  emptyMessage?: string;
+  tagStyle?: React.CSSProperties;
+  extra?: React.ReactNode;
+}
+
+function TagInput({
+  id,
+  label,
+  icon,
+  placeholder,
+  items,
+  onAdd,
+  onRemove,
+  addAriaLabel,
+  removeAriaLabelPrefix,
+  buttonText,
+  subLabel,
+  emptyMessage,
+  tagStyle,
+  extra
+}: TagInputProps) {
+  const [val, setVal] = React.useState('');
+  const handleAdd = () => {
+    const trimmed = val.trim();
+    if (trimmed && !items.includes(trimmed)) {
+      onAdd(trimmed);
+      setVal('');
+    }
+  };
+
+  return (
+    <div className="form-group">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <label className="form-label" htmlFor={id} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+          {icon} {label}
+        </label>
+        {subLabel && <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{subLabel}</span>}
+      </div>
+
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <input 
+          id={id}
+          type="text"
+          className="form-input"
+          placeholder={placeholder}
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleAdd();
+            }
+          }}
+        />
+        <button type="button" className="btn btn-secondary" onClick={handleAdd} aria-label={addAriaLabel}>
+          <Plus size={16} aria-hidden="true" />{buttonText ? ` ${buttonText}` : ''}
+        </button>
+      </div>
+
+      {items.length > 0 ? (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.4rem' }}>
+          {items.map((item, i) => (
+            <span 
+              key={i} 
+              className="badge-prov prov-intake"
+              style={{ padding: '0.25rem 0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem', ...tagStyle }}
+            >
+              {item}
+              <button
+                type="button"
+                aria-label={`${removeAriaLabelPrefix} ${item}`}
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'inline-flex', color: 'inherit', marginLeft: '0.35rem' }}
+                onClick={() => onRemove(i)}
+              >
+                <Trash2 size={12} aria-hidden="true" style={{ opacity: 0.7 }} />
+              </button>
+            </span>
+          ))}
+        </div>
+      ) : emptyMessage ? (
+        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '0.25rem' }}>
+          {emptyMessage}
+        </span>
+      ) : null}
+
+      {extra}
+    </div>
+  );
+}
+
 export function IntakeForm({ intake, onChange }: IntakeFormProps) {
-  // Helpers to update individual intake fields
   const updateField = <K extends keyof PatientIntake>(field: K, value: PatientIntake[K]) => {
     onChange({ ...intake, [field]: value });
   };
 
-  // Symptom handling
-  const [symptomInput, setSymptomInput] = React.useState('');
-  const addSymptom = () => {
-    if (symptomInput.trim() && !intake.symptoms.includes(symptomInput.trim())) {
-      updateField('symptoms', [...intake.symptoms, symptomInput.trim()]);
-      setSymptomInput('');
-    }
-  };
-  const removeSymptom = (idx: number) => {
-    updateField('symptoms', intake.symptoms.filter((_, i) => i !== idx));
-  };
-
-  // Condition handling
-  const [conditionInput, setConditionInput] = React.useState('');
-  const addCondition = () => {
-    if (conditionInput.trim() && !intake.existingConditions.includes(conditionInput.trim())) {
-      updateField('existingConditions', [...intake.existingConditions, conditionInput.trim()]);
-      setConditionInput('');
-    }
-  };
-  const removeCondition = (idx: number) => {
-    updateField('existingConditions', intake.existingConditions.filter((_, i) => i !== idx));
-  };
-
-  // Allergy handling
-  const [allergyInput, setAllergyInput] = React.useState('');
-  const addAllergy = () => {
-    if (allergyInput.trim() && !intake.allergies.includes(allergyInput.trim())) {
-      updateField('allergies', [...intake.allergies, allergyInput.trim()]);
-      setAllergyInput('');
-    }
-  };
-  const removeAllergy = (idx: number) => {
-    updateField('allergies', intake.allergies.filter((_, i) => i !== idx));
-  };
-
-  // Medication handling
-  const addMedication = () => {
-    updateField('currentMedications', [
-      ...intake.currentMedications,
-      { name: '', dosage: '', frequency: '' }
-    ]);
-  };
   const updateMedication = (index: number, key: 'name' | 'dosage' | 'frequency', val: string) => {
     const updatedMeds = [...intake.currentMedications];
     updatedMeds[index] = { ...updatedMeds[index], [key]: val };
     updateField('currentMedications', updatedMeds);
-  };
-  const removeMedication = (index: number) => {
-    updateField('currentMedications', intake.currentMedications.filter((_, i) => i !== index));
   };
 
   return (
@@ -134,164 +189,62 @@ export function IntakeForm({ intake, onChange }: IntakeFormProps) {
       </fieldset>
 
       {/* Symptoms & Chief Concerns */}
-      <div className="form-group">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <HeartPulse size={14} style={{ color: '#f43f5e' }} aria-hidden="true" /> Symptoms &amp; Chief Concerns
-          </label>
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Press Enter to add</span>
-        </div>
-
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <label htmlFor="symptom-input" className="sr-only">Add Symptom or Chief Concern</label>
-          <input 
-            id="symptom-input"
-            type="text"
-            className="form-input"
-            placeholder="e.g., Persistent fatigue, cold sensitivity..."
-            value={symptomInput}
-            onChange={(e) => setSymptomInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                addSymptom();
-              }
-            }}
-          />
-          <button type="button" className="btn btn-secondary" onClick={addSymptom} aria-label="Add symptom to patient intake">
-            <Plus size={16} aria-hidden="true" /> Add
-          </button>
-        </div>
-
-        {intake.symptoms.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.4rem' }}>
-            {intake.symptoms.map((symptom, i) => (
-              <span 
-                key={i} 
-                className="badge-prov prov-intake"
-                style={{ padding: '0.3rem 0.6rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-              >
-                {symptom}
-                <button
-                  type="button"
-                  aria-label={`Remove symptom ${symptom}`}
-                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'inline-flex', color: 'inherit' }}
-                  onClick={() => removeSymptom(i)}
-                >
-                  <Trash2 
-                    size={12} 
-                    aria-hidden="true"
-                    style={{ opacity: 0.7 }} 
-                  />
-                </button>
-              </span>
-            ))}
-          </div>
-        )}
-
-        <label htmlFor="symptom-progression-notes" className="sr-only">Symptom progression notes</label>
-        <input 
-          id="symptom-progression-notes"
-          type="text"
-          className="form-input"
-          placeholder="Optional symptom progression notes (e.g., worsened over 6 weeks)..."
-          style={{ fontSize: '0.8rem', marginTop: '0.35rem' }}
-          value={intake.symptomNotes || ''}
-          onChange={(e) => updateField('symptomNotes', e.target.value)}
-        />
-      </div>
+      <TagInput 
+        id="symptom-input"
+        label="Symptoms & Chief Concerns"
+        icon={<HeartPulse size={14} style={{ color: '#f43f5e' }} aria-hidden="true" />}
+        placeholder="e.g., Persistent fatigue, cold sensitivity..."
+        items={intake.symptoms}
+        onAdd={(item) => updateField('symptoms', [...intake.symptoms, item])}
+        onRemove={(i) => updateField('symptoms', intake.symptoms.filter((_, idx) => idx !== i))}
+        addAriaLabel="Add symptom to patient intake"
+        removeAriaLabelPrefix="Remove symptom"
+        buttonText="Add"
+        subLabel="Press Enter to add"
+        tagStyle={{ padding: '0.3rem 0.6rem' }}
+        extra={
+          <>
+            <label htmlFor="symptom-progression-notes" className="sr-only">Symptom progression notes</label>
+            <input 
+              id="symptom-progression-notes"
+              type="text"
+              className="form-input"
+              placeholder="Optional symptom progression notes (e.g., worsened over 6 weeks)..."
+              style={{ fontSize: '0.8rem', marginTop: '0.35rem' }}
+              value={intake.symptomNotes || ''}
+              onChange={(e) => updateField('symptomNotes', e.target.value)}
+            />
+          </>
+        }
+      />
 
       {/* Conditions & Known Allergies Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
-        {/* Existing Medical Conditions */}
-        <div className="form-group">
-          <label className="form-label" htmlFor="condition-input" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <FileText size={14} aria-hidden="true" style={{ color: 'var(--primary)' }} /> Existing Medical Conditions
-          </label>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <input 
-              id="condition-input"
-              type="text"
-              className="form-input"
-              placeholder="e.g., Menorrhagia, Hypertension..."
-              value={conditionInput}
-              onChange={(e) => setConditionInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  addCondition();
-                }
-              }}
-            />
-            <button type="button" className="btn btn-secondary" onClick={addCondition} aria-label="Add medical condition">
-              <Plus size={16} aria-hidden="true" />
-            </button>
-          </div>
-          {intake.existingConditions.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.4rem' }}>
-              {intake.existingConditions.map((cond, i) => (
-                <span key={i} className="badge-prov prov-intake" style={{ padding: '0.25rem 0.5rem' }}>
-                  {cond}
-                  <button
-                    type="button"
-                    aria-label={`Remove condition ${cond}`}
-                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'inline-flex', color: 'inherit', marginLeft: '0.35rem' }}
-                    onClick={() => removeCondition(i)}
-                  >
-                    <Trash2 size={11} aria-hidden="true" />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
+        <TagInput 
+          id="condition-input"
+          label="Existing Medical Conditions"
+          icon={<FileText size={14} aria-hidden="true" style={{ color: 'var(--primary)' }} />}
+          placeholder="e.g., Menorrhagia, Hypertension..."
+          items={intake.existingConditions}
+          onAdd={(item) => updateField('existingConditions', [...intake.existingConditions, item])}
+          onRemove={(i) => updateField('existingConditions', intake.existingConditions.filter((_, idx) => idx !== i))}
+          addAriaLabel="Add medical condition"
+          removeAriaLabelPrefix="Remove condition"
+        />
 
-        {/* Known Allergies */}
-        <div className="form-group">
-          <label className="form-label" htmlFor="allergy-input" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <AlertCircle size={14} aria-hidden="true" style={{ color: '#f59e0b' }} /> Known Allergies
-          </label>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <input 
-              id="allergy-input"
-              type="text"
-              className="form-input"
-              placeholder="e.g., Penicillin, Sulfa, Latex (or leave blank if none)..."
-              value={allergyInput}
-              onChange={(e) => setAllergyInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  addAllergy();
-                }
-              }}
-            />
-            <button type="button" className="btn btn-secondary" onClick={addAllergy} aria-label="Add allergy">
-              <Plus size={16} aria-hidden="true" />
-            </button>
-          </div>
-          {intake.allergies.length > 0 ? (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.4rem' }}>
-              {intake.allergies.map((allergy, i) => (
-                <span key={i} className="badge-prov prov-intake" style={{ padding: '0.25rem 0.5rem', borderColor: '#f59e0b', color: '#fbbf24' }}>
-                  {allergy}
-                  <button
-                    type="button"
-                    aria-label={`Remove allergy ${allergy}`}
-                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'inline-flex', color: 'inherit', marginLeft: '0.35rem' }}
-                    onClick={() => removeAllergy(i)}
-                  >
-                    <Trash2 size={11} aria-hidden="true" />
-                  </button>
-                </span>
-              ))}
-            </div>
-          ) : (
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '0.25rem' }}>
-              No drug/food allergies specified in intake form.
-            </span>
-          )}
-        </div>
+        <TagInput 
+          id="allergy-input"
+          label="Known Allergies"
+          icon={<AlertCircle size={14} aria-hidden="true" style={{ color: '#f59e0b' }} />}
+          placeholder="e.g., Penicillin, Sulfa, Latex (or leave blank if none)..."
+          items={intake.allergies}
+          onAdd={(item) => updateField('allergies', [...intake.allergies, item])}
+          onRemove={(i) => updateField('allergies', intake.allergies.filter((_, idx) => idx !== i))}
+          addAriaLabel="Add allergy"
+          removeAriaLabelPrefix="Remove allergy"
+          emptyMessage="No drug/food allergies specified in intake form."
+          tagStyle={{ borderColor: '#f59e0b', color: '#fbbf24' }}
+        />
       </div>
 
       {/* Current Medications */}
@@ -300,7 +253,13 @@ export function IntakeForm({ intake, onChange }: IntakeFormProps) {
           <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
             <Pill size={14} aria-hidden="true" style={{ color: '#818cf8' }} /> Current Medications &amp; Supplements
           </label>
-          <button type="button" className="btn btn-outline" style={{ padding: '0.3rem 0.75rem', fontSize: '0.75rem' }} onClick={addMedication} aria-label="Add a medication row">
+          <button 
+            type="button" 
+            className="btn btn-outline" 
+            style={{ padding: '0.3rem 0.75rem', fontSize: '0.75rem' }} 
+            onClick={() => updateField('currentMedications', [...intake.currentMedications, { name: '', dosage: '', frequency: '' }])} 
+            aria-label="Add a medication row"
+          >
             <Plus size={14} aria-hidden="true" /> Add Medication
           </button>
         </div>
@@ -353,7 +312,7 @@ export function IntakeForm({ intake, onChange }: IntakeFormProps) {
                   type="button" 
                   className="btn btn-outline" 
                   style={{ padding: '0.45rem', color: '#f43f5e' }} 
-                  onClick={() => removeMedication(idx)}
+                  onClick={() => updateField('currentMedications', intake.currentMedications.filter((_, i) => i !== idx))}
                   title="Remove medication"
                   aria-label={`Remove medication ${med.name || (idx + 1)}`}
                 >

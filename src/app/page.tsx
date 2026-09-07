@@ -146,6 +146,23 @@ export default function MedLensPage() {
     );
   };
 
+  // Audit log entry creator helper
+  const createAuditEntry = (
+    action: MedicalRecordData['auditTrail'][0]['action'],
+    targetField: string,
+    comment: string,
+    author: 'CLINICIAN' | 'PATIENT' = 'CLINICIAN',
+    extra?: { oldValue?: string; newValue?: string }
+  ) => ({
+    id: `audit-${Date.now()}`,
+    timestamp: new Date().toISOString(),
+    author,
+    action,
+    targetField,
+    comment,
+    ...extra
+  });
+
   // 4. Human Review & Field Edit
   const handleSaveParameterEdit = (updatedParam: LabParameter, comment: string) => {
     if (!record) return;
@@ -155,16 +172,16 @@ export default function MedLensPage() {
       p.id === updatedParam.id ? updatedParam : p
     );
 
-    const auditEntry = {
-      id: `audit-${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      author: 'CLINICIAN' as const,
-      action: 'EDIT_VALUE' as const,
-      targetField: updatedParam.canonicalName,
-      oldValue: oldParam ? `${oldParam.observedValue} ${oldParam.unit}` : undefined,
-      newValue: `${updatedParam.observedValue} ${updatedParam.unit}`,
-      comment
-    };
+    const auditEntry = createAuditEntry(
+      'EDIT_VALUE',
+      updatedParam.canonicalName,
+      comment,
+      'CLINICIAN',
+      {
+        oldValue: oldParam ? `${oldParam.observedValue} ${oldParam.unit}` : undefined,
+        newValue: `${updatedParam.observedValue} ${updatedParam.unit}`
+      }
+    );
 
     setRecord({
       ...record,
@@ -180,14 +197,7 @@ export default function MedLensPage() {
     const updatedConflicts = record.conflicts.map(c => 
       c.id === conflictId ? { ...c, status: 'ACKNOWLEDGED' as const } : c
     );
-    const auditEntry = {
-      id: `audit-${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      author: 'CLINICIAN' as const,
-      action: 'RESOLVE_CONFLICT' as const,
-      targetField: `Conflict: ${conflictId}`,
-      comment: 'Conflict acknowledged by clinician.'
-    };
+    const auditEntry = createAuditEntry('RESOLVE_CONFLICT', `Conflict: ${conflictId}`, 'Conflict acknowledged by clinician.');
     setRecord({
       ...record,
       conflicts: updatedConflicts,
@@ -201,14 +211,7 @@ export default function MedLensPage() {
     const updatedConflicts = record.conflicts.map(c => 
       c.id === conflictId ? { ...c, status: 'RESOLVED' as const, resolutionNote: note } : c
     );
-    const auditEntry = {
-      id: `audit-${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      author: 'CLINICIAN' as const,
-      action: 'RESOLVE_CONFLICT' as const,
-      targetField: `Conflict: ${conflictId}`,
-      comment: `Conflict resolved: ${note}`
-    };
+    const auditEntry = createAuditEntry('RESOLVE_CONFLICT', `Conflict: ${conflictId}`, `Conflict resolved: ${note}`);
     setRecord({
       ...record,
       conflicts: updatedConflicts,
@@ -223,15 +226,7 @@ export default function MedLensPage() {
     const updatedQuestions = record.clarificationQuestions.map(q => 
       q.id === questionId ? { ...q, answeredText: answer } : q
     );
-    const auditEntry = {
-      id: `audit-${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      author: 'PATIENT' as const,
-      action: 'ANSWER_QUESTION' as const,
-      targetField: `Question: ${questionId}`,
-      newValue: answer,
-      comment: 'Clarification answer provided.'
-    };
+    const auditEntry = createAuditEntry('ANSWER_QUESTION', `Question: ${questionId}`, 'Clarification answer provided.', 'PATIENT', { newValue: answer });
     setRecord({
       ...record,
       clarificationQuestions: updatedQuestions,
@@ -244,14 +239,7 @@ export default function MedLensPage() {
   const handleVerifyEntireRecord = () => {
     if (!record) return;
     const verifiedParams = record.currentParameters.map(p => ({ ...p, isHumanVerified: true }));
-    const auditEntry = {
-      id: `audit-${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      author: 'CLINICIAN' as const,
-      action: 'VERIFY_RECORD' as const,
-      targetField: 'Complete Medical Record',
-      comment: 'Clinician officially reviewed and signed off on all extracted parameters.'
-    };
+    const auditEntry = createAuditEntry('VERIFY_RECORD', 'Complete Medical Record', 'Clinician officially reviewed and signed off on all extracted parameters.');
     setRecord({
       ...record,
       isVerified: true,
@@ -373,66 +361,28 @@ export default function MedLensPage() {
               aria-label="Clinical Findings Views"
               style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.5rem', flexWrap: 'wrap' }}
             >
-              <button 
-                id="tab-record"
-                role="tab"
-                aria-selected={activeTab === 'record'}
-                aria-controls="panel-record"
-                tabIndex={activeTab === 'record' ? 0 : -1}
-                type="button"
-                className={`btn ${activeTab === 'record' ? 'btn-primary' : 'btn-outline'}`}
-                style={{ fontSize: '0.85rem', padding: '0.5rem 1.1rem' }}
-                onClick={() => setActiveTab('record')}
-                onKeyDown={(e) => handleTabKeyDown(e, 'record')}
-              >
-                <Layers size={15} aria-hidden="true" /> Structured Record ({record.currentParameters.length})
-              </button>
-              <button 
-                id="tab-summary"
-                role="tab"
-                aria-selected={activeTab === 'summary'}
-                aria-controls="panel-summary"
-                tabIndex={activeTab === 'summary' ? 0 : -1}
-                type="button"
-                className={`btn ${activeTab === 'summary' ? 'btn-primary' : 'btn-outline'}`}
-                style={{ fontSize: '0.85rem', padding: '0.5rem 1.1rem' }}
-                onClick={() => setActiveTab('summary')}
-                onKeyDown={(e) => handleTabKeyDown(e, 'summary')}
-              >
-                <Sparkles size={15} aria-hidden="true" /> AI Patient Summary
-              </button>
-              {record.longitudinalComparisons && record.longitudinalComparisons.length > 0 && (
-                <button 
-                  id="tab-longitudinal"
+              {[
+                { id: 'record', label: `Structured Record (${record.currentParameters.length})`, icon: <Layers size={15} aria-hidden="true" />, show: true },
+                { id: 'summary', label: 'AI Patient Summary', icon: <Sparkles size={15} aria-hidden="true" />, show: true },
+                { id: 'longitudinal', label: `Longitudinal Comparison (${record.longitudinalComparisons?.length || 0})`, icon: <Workflow size={15} aria-hidden="true" />, show: Boolean(record.longitudinalComparisons && record.longitudinalComparisons.length > 0) },
+                { id: 'clarifications', label: `Clarification Inquiries (${record.clarificationQuestions?.length || 0})`, show: Boolean(record.clarificationQuestions && record.clarificationQuestions.length > 0) },
+              ].filter(t => t.show).map(tab => (
+                <button
+                  key={tab.id}
+                  id={`tab-${tab.id}`}
                   role="tab"
-                  aria-selected={activeTab === 'longitudinal'}
-                  aria-controls="panel-longitudinal"
-                  tabIndex={activeTab === 'longitudinal' ? 0 : -1}
+                  aria-selected={activeTab === tab.id}
+                  aria-controls={`panel-${tab.id}`}
+                  tabIndex={activeTab === tab.id ? 0 : -1}
                   type="button"
-                  className={`btn ${activeTab === 'longitudinal' ? 'btn-primary' : 'btn-outline'}`}
+                  className={`btn ${activeTab === tab.id ? 'btn-primary' : 'btn-outline'}`}
                   style={{ fontSize: '0.85rem', padding: '0.5rem 1.1rem' }}
-                  onClick={() => setActiveTab('longitudinal')}
-                  onKeyDown={(e) => handleTabKeyDown(e, 'longitudinal')}
+                  onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                  onKeyDown={(e) => handleTabKeyDown(e, tab.id as typeof activeTab)}
                 >
-                  <Workflow size={15} aria-hidden="true" /> Longitudinal Comparison ({record.longitudinalComparisons.length})
+                  {tab.icon} {tab.label}
                 </button>
-              )}
-              {record.clarificationQuestions && record.clarificationQuestions.length > 0 && (
-                <button 
-                  id="tab-clarifications"
-                  role="tab"
-                  aria-selected={activeTab === 'clarifications'}
-                  aria-controls="panel-clarifications"
-                  tabIndex={activeTab === 'clarifications' ? 0 : -1}
-                  type="button"
-                  className={`btn ${activeTab === 'clarifications' ? 'btn-primary' : 'btn-outline'}`}
-                  style={{ fontSize: '0.85rem', padding: '0.5rem 1.1rem' }}
-                  onClick={() => setActiveTab('clarifications')}
-                  onKeyDown={(e) => handleTabKeyDown(e, 'clarifications')}
-                >
-                  Clarification Inquiries ({record.clarificationQuestions.length})
-                </button>
-              )}
+              ))}
             </div>
 
             {/* Active Tab View Panels */}
