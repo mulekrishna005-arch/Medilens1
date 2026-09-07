@@ -18,12 +18,12 @@ export function ClarificationQuestionsCard({
   if (!questions || questions.length === 0) return null;
 
   return (
-    <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+    <section aria-labelledby="clarification-heading" className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.6rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <HelpCircle size={18} style={{ color: '#818cf8' }} />
-          <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>
+          <HelpCircle size={18} style={{ color: '#818cf8' }} aria-hidden="true" />
+          <h3 id="clarification-heading" style={{ fontSize: '1rem', fontWeight: 700 }}>
             Context-Aware Clarification Questions ({questions.length})
           </h3>
         </div>
@@ -95,7 +95,7 @@ export function ClarificationQuestionsCard({
                   alignItems: 'center',
                   gap: '0.5rem'
                 }}>
-                  <Check size={14} />
+                  <Check size={14} aria-hidden="true" />
                   <span><strong>Answered:</strong> {q.answeredText}</span>
                 </div>
               ) : (
@@ -131,6 +131,6 @@ export function ClarificationQuestionsCard({
           );
         })}
       </div>
-    </div>
+    </section>
   );
 }

@@ -23,7 +23,8 @@ export function ConflictAlertBanner({
   const pendingCount = conflicts.filter(c => c.status === 'PENDING').length;
 
   return (
-    <div 
+    <section 
+      aria-labelledby="conflict-banner-heading"
       className="glass-panel"
       style={{
         padding: '1.25rem',
@@ -44,10 +45,10 @@ export function ConflictAlertBanner({
             justifyContent: 'center',
             color: '#ef4444' 
           }}>
-            <ShieldAlert size={18} />
+            <ShieldAlert size={18} aria-hidden="true" />
           </div>
           <div>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#f87171' }}>
+            <h3 id="conflict-banner-heading" style={{ fontSize: '1rem', fontWeight: 700, color: '#f87171' }}>
               Potential Clinical Contradictions Detected ({conflicts.length})
             </h3>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
@@ -78,19 +79,13 @@ export function ConflictAlertBanner({
                 opacity: isPending ? 1 : 0.8
               }}
             >
-              <div 
-                role="button"
-                tabIndex={0}
+              <button 
+                type="button"
+                className="conflict-accordion-btn"
                 aria-expanded={isExpanded}
                 aria-controls={`conflict-body-${conflict.id}`}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
+                aria-label={`Toggle contradiction details for: ${conflict.title}`}
                 onClick={() => setExpandedId(isExpanded ? null : conflict.id)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setExpandedId(isExpanded ? null : conflict.id);
-                  }
-                }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <AlertTriangle 
@@ -114,7 +109,7 @@ export function ConflictAlertBanner({
                   </span>
                 </div>
                 {isExpanded ? <ChevronUp size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}
-              </div>
+              </button>
 
               {/* Collapsible Detail */}
               {isExpanded && (
@@ -182,6 +177,7 @@ export function ConflictAlertBanner({
                         className="btn btn-outline"
                         style={{ padding: '0.4rem 0.75rem', fontSize: '0.78rem' }}
                         onClick={() => onAcknowledgeConflict(conflict.id)}
+                        aria-label={`Acknowledge contradiction: ${conflict.title}`}
                       >
                         Acknowledge
                       </button>
@@ -193,6 +189,6 @@ export function ConflictAlertBanner({
           );
         })}
       </div>
-    </div>
+    </section>
   );
 }

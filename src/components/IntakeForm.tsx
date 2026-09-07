@@ -68,65 +68,76 @@ export function IntakeForm({ intake, onChange }: IntakeFormProps) {
   };
 
   return (
-    <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+    <section aria-labelledby="intake-form-heading" className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       {/* Header with Provenance Badge */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.75rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <User size={18} style={{ color: 'var(--primary)' }} />
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 700 }}>1. Patient Information Intake</h2>
+          <User size={18} style={{ color: 'var(--primary)' }} aria-hidden="true" />
+          <h2 id="intake-form-heading" style={{ fontSize: '1.1rem', fontWeight: 700 }}>1. Patient Information Intake</h2>
         </div>
         <span className="badge-prov prov-intake" title="All information in this card is self-reported by the patient">
           Source: Patient Intake
         </span>
       </div>
 
-      {/* Demographics Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-        <div className="form-group">
-          <label className="form-label" htmlFor="patient-name">Patient Name / Identifier *</label>
-          <input 
-            id="patient-name"
-            type="text"
-            className="form-input"
-            placeholder="e.g., Sarah Jenkins"
-            value={intake.name}
-            onChange={(e) => updateField('name', e.target.value)}
-          />
-        </div>
+      {/* Demographics Group */}
+      <fieldset>
+        <legend className="sr-only">Patient Demographics</legend>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+          <div className="form-group">
+            <label className="form-label" htmlFor="patient-name">Patient Name / Identifier *</label>
+            <input 
+              id="patient-name"
+              type="text"
+              required
+              aria-required="true"
+              className="form-input"
+              placeholder="e.g., Sarah Jenkins"
+              value={intake.name}
+              onChange={(e) => updateField('name', e.target.value)}
+            />
+          </div>
 
-        <div className="form-group">
-          <label className="form-label" htmlFor="patient-age">Age (Years) *</label>
-          <input 
-            id="patient-age"
-            type="number"
-            className="form-input"
-            placeholder="e.g., 34"
-            value={intake.age || ''}
-            onChange={(e) => updateField('age', e.target.value ? parseInt(e.target.value) : '')}
-          />
-        </div>
+          <div className="form-group">
+            <label className="form-label" htmlFor="patient-age">Age (Years) *</label>
+            <input 
+              id="patient-age"
+              type="number"
+              required
+              aria-required="true"
+              min={0}
+              max={130}
+              className="form-input"
+              placeholder="e.g., 34"
+              value={intake.age || ''}
+              onChange={(e) => updateField('age', e.target.value ? parseInt(e.target.value) : '')}
+            />
+          </div>
 
-        <div className="form-group">
-          <label className="form-label" htmlFor="patient-sex">Biological Sex *</label>
-          <select 
-            id="patient-sex"
-            className="form-select"
-            value={intake.sex}
-            onChange={(e) => updateField('sex', e.target.value as BiologicalSex)}
-          >
-            <option value="female">Female</option>
-            <option value="male">Male</option>
-            <option value="other">Other</option>
-            <option value="unspecified">Unspecified</option>
-          </select>
+          <div className="form-group">
+            <label className="form-label" htmlFor="patient-sex">Biological Sex *</label>
+            <select 
+              id="patient-sex"
+              required
+              aria-required="true"
+              className="form-select"
+              value={intake.sex}
+              onChange={(e) => updateField('sex', e.target.value as BiologicalSex)}
+            >
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+              <option value="other">Other</option>
+              <option value="unspecified">Unspecified</option>
+            </select>
+          </div>
         </div>
-      </div>
+      </fieldset>
 
       {/* Symptoms & Chief Concerns */}
       <div className="form-group">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <HeartPulse size={14} style={{ color: '#f43f5e' }} /> Symptoms & Chief Concerns
+            <HeartPulse size={14} style={{ color: '#f43f5e' }} aria-hidden="true" /> Symptoms &amp; Chief Concerns
           </label>
           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Press Enter to add</span>
         </div>
@@ -366,6 +377,6 @@ export function IntakeForm({ intake, onChange }: IntakeFormProps) {
           onChange={(e) => updateField('additionalNotes', e.target.value)}
         />
       </div>
-    </div>
+    </section>
   );
 }

@@ -93,7 +93,7 @@ export function Header({ onSelectScenario, activeScenarioId, isVerified }: Heade
             style={{ padding: '0.45rem 0.75rem' }}
             onClick={toggleTheme}
             title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} theme`}
-            aria-label="Toggle theme"
+            aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
           >
             {theme === 'dark' ? <Sun size={16} aria-hidden="true" /> : <Moon size={16} aria-hidden="true" />}
           </button>
@@ -101,23 +101,27 @@ export function Header({ onSelectScenario, activeScenarioId, isVerified }: Heade
       </div>
 
       {/* Safety Notice Bar */}
-      <div style={{ 
-        background: 'rgba(239, 68, 68, 0.08)', 
-        borderTop: '1px solid rgba(239, 68, 68, 0.15)',
-        borderBottom: '1px solid rgba(239, 68, 68, 0.15)',
-        padding: '0.35rem 0',
-        fontSize: '0.72rem',
-        color: 'var(--text-secondary)',
-        textAlign: 'center',
-        marginTop: '0.75rem'
-      }}>
+      <aside 
+        role="note"
+        aria-label="Clinical safety notice"
+        style={{ 
+          background: 'rgba(239, 68, 68, 0.08)', 
+          borderTop: '1px solid rgba(239, 68, 68, 0.15)',
+          borderBottom: '1px solid rgba(239, 68, 68, 0.15)',
+          padding: '0.35rem 0',
+          fontSize: '0.72rem',
+          color: 'var(--text-secondary)',
+          textAlign: 'center',
+          marginTop: '0.75rem'
+        }}
+      >
         <div className="med-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-          <ShieldAlert size={14} style={{ color: '#ef4444', flexShrink: 0 }} />
+          <ShieldAlert size={14} style={{ color: '#ef4444', flexShrink: 0 }} aria-hidden="true" />
           <span>
             <strong>Informational System:</strong> MedLens organizes and standardizes clinical documents. It does not diagnose, prescribe, or replace professional medical consultations.
           </span>
         </div>
-      </div>
+      </aside>
     </header>
   );
 }

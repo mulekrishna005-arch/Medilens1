@@ -30,15 +30,51 @@ function HumanReviewModalContent({
   const [comment, setComment] = useState('Clinician manual review & parameter verification');
   const [markVerified, setMarkVerified] = useState(true);
 
-  // Escape key handler for accessible modal closing
+  const modalRef = React.useRef<HTMLDivElement>(null);
+
+  // Keyboard navigation: Escape to close and Tab focus trapping within modal
   useEffect(() => {
+    const prevActiveElement = document.activeElement as HTMLElement | null;
+
+    // Focus the first interactive element inside modal upon mount
+    const focusable = modalRef.current?.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    if (focusable && focusable.length > 0) {
+      focusable[0].focus();
+    }
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
+      } else if (e.key === 'Tab') {
+        if (!modalRef.current) return;
+        const elements = modalRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (!elements.length) return;
+        const first = elements[0];
+        const last = elements[elements.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
       }
     };
+
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      prevActiveElement?.focus();
+    };
   }, [onClose]);
 
   const handleSave = () => {
@@ -69,6 +105,7 @@ function HumanReviewModalContent({
       role="presentation"
     >
       <div 
+        ref={modalRef}
         className="modal-content" 
         onClick={(e) => e.stopPropagation()}
         role="dialog"

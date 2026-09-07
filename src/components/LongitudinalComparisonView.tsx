@@ -18,21 +18,21 @@ export function LongitudinalComparisonView({
   if (!comparisons || comparisons.length === 0) return null;
 
   return (
-    <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+    <section aria-labelledby="longitudinal-heading" className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       {/* Header with Dates */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Clock size={18} style={{ color: '#c084fc' }} />
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 700 }}>
-            4. Longitudinal Trajectory & Report Comparison ({comparisons.length} Parameters)
+          <Clock size={18} style={{ color: '#c084fc' }} aria-hidden="true" />
+          <h2 id="longitudinal-heading" style={{ fontSize: '1.1rem', fontWeight: 700 }}>
+            4. Longitudinal Trajectory &amp; Report Comparison ({comparisons.length} Parameters)
           </h2>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <span className="badge-prov prov-previous" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-            <Calendar size={12} /> Prior: {previousDate}
+            <Calendar size={12} aria-hidden="true" /> Prior: {previousDate}
           </span>
           <span className="badge-prov prov-report" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-            <Calendar size={12} /> Current: {currentDate}
+            <Calendar size={12} aria-hidden="true" /> Current: {currentDate}
           </span>
         </div>
       </div>
@@ -140,6 +140,6 @@ export function LongitudinalComparisonView({
           </tbody>
         </table>
       </div>
-    </div>
+    </section>
   );
 }

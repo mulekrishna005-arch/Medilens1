@@ -51,12 +51,12 @@ export function ReportUploader({
   };
 
   return (
-    <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+    <section aria-labelledby="report-uploader-heading" className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       {/* Header and Input Switcher */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FileText size={18} style={{ color: 'var(--primary)' }} />
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 700 }}>2. Medical & Laboratory Reports</h2>
+          <FileText size={18} style={{ color: 'var(--primary)' }} aria-hidden="true" />
+          <h2 id="report-uploader-heading" style={{ fontSize: '1.1rem', fontWeight: 700 }}>2. Medical &amp; Laboratory Reports</h2>
         </div>
 
         {/* Tab Toggle for Current vs Previous Report */}
@@ -267,20 +267,25 @@ export function ReportUploader({
           disabled={!currentReportText.trim() || isProcessing}
           onClick={onRunPipeline}
           aria-label="Process and analyze medical record"
+          aria-busy={isProcessing}
         >
           {isProcessing ? (
             <>
-              <div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              <div 
+                role="presentation" 
+                aria-hidden="true"
+                style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} 
+              />
               Processing Pipeline...
             </>
           ) : (
             <>
-              <Sparkles size={18} />
-              Process & Analyze Record
+              <Sparkles size={18} aria-hidden="true" />
+              Process &amp; Analyze Record
             </>
           )}
         </button>
       </div>
-    </div>
+    </section>
   );
 }

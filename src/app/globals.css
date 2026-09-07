@@ -110,48 +110,55 @@
   --primary-contrast: #ffffff;
 
   --status-normal-bg: #ecfdf5;
-  --status-normal-text: #059669;
+  --status-normal-text: #047857;
   --status-normal-border: #a7f3d0;
 
   --status-low-bg: #fffbeb;
-  --status-low-text: #d97706;
+  --status-low-text: #92400e;
   --status-low-border: #fde68a;
 
   --status-high-bg: #fff1f2;
-  --status-high-text: #e11d48;
+  --status-high-text: #be123c;
   --status-high-border: #fecdd3;
 
   --status-critical-bg: #fef2f2;
-  --status-critical-text: #dc2626;
+  --status-critical-text: #b91c1c;
   --status-critical-border: #f87171;
 
   --status-unspecified-bg: #f1f5f9;
-  --status-unspecified-text: #64748b;
+  --status-unspecified-text: #475569;
   --status-unspecified-border: #cbd5e1;
 
   --prov-intake-bg: #eff6ff;
-  --prov-intake-text: #2563eb;
+  --prov-intake-text: #1d4ed8;
   --prov-intake-border: #bfdbfe;
 
   --prov-report-bg: #ecfeff;
-  --prov-report-text: #0891b2;
+  --prov-report-text: #0e7490;
   --prov-report-border: #a5f3fc;
 
   --prov-previous-bg: #faf5ff;
-  --prov-previous-text: #9333ea;
+  --prov-previous-text: #7e22ce;
   --prov-previous-border: #e9d5ff;
 
   --prov-ai-bg: #f0fdfa;
-  --prov-ai-text: #0d9488;
+  --prov-ai-text: #0f766e;
   --prov-ai-border: #99f6e4;
 
   --prov-verified-bg: #fefce8;
-  --prov-verified-text: #ca8a04;
+  --prov-verified-text: #854d0e;
   --prov-verified-border: #fef08a;
 
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
 }
 
 /* Base Styles */
@@ -661,6 +668,27 @@ textarea:focus-visible,
   box-shadow: 0 0 0 4px var(--primary-glow);
 }
 
+/* Accessible Transparent Accordion Button */
+.conflict-accordion-btn {
+  width: 100%;
+  background: transparent;
+  border: none;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+  color: inherit;
+}
+
+.conflict-accordion-btn:focus-visible {
+  border-radius: var(--radius-sm);
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+}
+
 /* Reduced Motion Preference */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -672,4 +700,5 @@ textarea:focus-visible,
     scroll-behavior: auto !important;
   }
 }
+
 

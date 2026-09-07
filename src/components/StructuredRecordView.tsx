@@ -73,13 +73,13 @@ export function StructuredRecordView({
   });
 
   return (
-    <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <section aria-labelledby="structured-record-heading" className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* Top Action Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <FlaskConical size={22} style={{ color: 'var(--primary)' }} />
+          <FlaskConical size={22} style={{ color: 'var(--primary)' }} aria-hidden="true" />
           <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>
+            <h2 id="structured-record-heading" style={{ fontSize: '1.25rem', fontWeight: 800 }}>
               Structured Clinical Laboratory Record
             </h2>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -92,7 +92,7 @@ export function StructuredRecordView({
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
           {record.isVerified ? (
             <span className="badge-prov prov-verified" style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem' }}>
-              <ShieldCheck size={16} /> Record Human-Verified ({record.verifiedBy || 'Clinician'})
+              <ShieldCheck size={16} aria-hidden="true" /> Record Human-Verified ({record.verifiedBy || 'Clinician'})
             </span>
           ) : (
             <button 
@@ -100,9 +100,10 @@ export function StructuredRecordView({
               className="btn btn-secondary"
               style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}
               onClick={onVerifyEntireRecord}
+              aria-label="Sign off and verify entire clinical record"
             >
-              <FileCheck size={16} style={{ color: '#10b981' }} />
-              Sign Off & Verify Record
+              <FileCheck size={16} style={{ color: '#10b981' }} aria-hidden="true" />
+              Sign Off &amp; Verify Record
             </button>
           )}
 
@@ -111,8 +112,9 @@ export function StructuredRecordView({
             className="btn btn-primary"
             style={{ padding: '0.5rem 1.1rem', fontSize: '0.8rem' }}
             onClick={onOpenExportModal}
+            aria-label="Export or print clinical health record summary"
           >
-            <Download size={15} />
+            <Download size={15} aria-hidden="true" />
             Export / Print Record
           </button>
         </div>
@@ -355,10 +357,10 @@ export function StructuredRecordView({
       {record.auditTrail && record.auditTrail.length > 0 && (
         <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Clock size={14} style={{ color: 'var(--text-muted)' }} />
-            <h4 style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <Clock size={14} style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
+            <h3 style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               Record Audit Trail ({record.auditTrail.length} Events)
-            </h4>
+            </h3>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', maxHeight: '140px', overflowY: 'auto' }}>
             {record.auditTrail.map((entry) => (
@@ -386,6 +388,6 @@ export function StructuredRecordView({
           </div>
         </div>
       )}
-    </div>
+    </section>
   );
 }
